@@ -1,0 +1,29 @@
+---
+title: "Exploratory Data Analysis of Automatic Ball Strike (ABS) Challenges in Major League Baseball"
+author: "Steven Pappas"
+format: 
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+editor: visual
+execute:
+  warning: false
+  message: false
+  echo: true
+  include: true
+---
+
+Gary Cohen: Are catchers as hitters more successful at overturning calls?
+
+Find some way to approximate error in pitch location based on hitter or catcher
+  - Hitter: swing profile
+  - Catcher: takes
+  
+Add non-challenged call data to challenged call
+
+Characteristics of balls challenged by catchers and hitters
+
+Heat map of pitches by catcher and hitter
+
+Send Git to Greg
