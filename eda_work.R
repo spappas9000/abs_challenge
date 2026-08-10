@@ -82,6 +82,7 @@ challenge = list(
       inning > 9 ~ 10,
       .default = inning
     ),
+    challenge = 1,
     challenge_hitter = ifelse(challenger == "Hitter", 1, 0),
     challenge_catcher = ifelse(challenger == "Catcher", 1, 0),
     call_change_hitter = ifelse(challenger == "Hitter" & description == "ball", 1, 0),
@@ -122,9 +123,9 @@ challenge %>%
   ) %>%
   arrange(-desc(inning))
 
-summary(aov(call_change ~ inning, data = challenge))
+summary(aov(call_change_hitter ~ inning, data = modeldata))
 
-summary(aov(call_change ~ factor(inning), data = challenge))
+summary(aov(call_change_hitter ~ factor(inning), data = modeldata))
 
 challenge %>%
   group_by(challenger, pitch_class) %>%
