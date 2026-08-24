@@ -1,6 +1,5 @@
 
 library(lme4)
-library(glmmTMB)
 library(tidyverse)
 library(baseballr)
 library(httr)
@@ -254,7 +253,7 @@ modeldata_catcher %>%
 
 mod2_call_change_catcher <- glmer(
   challenge_catcher ~ I(plate_z_adj^2) + I(plate_x_adj^2) + plate_z_adj + plate_x_adj + delta + inning + bat_score_diff + challenges_remaining +
-                      (1|fielder_2) + (1|def_team) + (1|umpire_hp),
+                      (1|fielder_2),
   data = modeldata_catcher,
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa")

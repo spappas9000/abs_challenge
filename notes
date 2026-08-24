@@ -1,0 +1,36 @@
+
+Meeting with Greg
+
+  - First slide should be explaining this slide to someone with less technical knowledge
+    - Tell me what the data is
+  - Second slide should be a model slide
+  - Explicitly state the response variable in the methodology
+  - Split the methodology slide int a data slide and a methodology slide
+    - In the data slide talk about the number of pitches that were challenged out of the sample
+    - 2x2 table with a challenge and whether or not it was overturned
+      - Top right would be a zero since no challenge can't be overturned
+  - Organize the presentation as what I would've done in STAT 103 to 203 to 308 to a grad student
+  - Explain the methodology further
+    - What does it mean for a pitch to be able to be challenged?
+  - Have a slide where I write out all the predictor variables
+    - Subsequent slide should bold run expectancy to discuss it further
+  - Transform score difference to parabolic or absolute value variable
+  - Add a cubic term for plate location
+  - Instead of doing AUC look at a subset of challengable calls
+  - Add the hitter ID as a random effect to the catcher model
+    - You'd probably want to get a call against a good hitter
+  - For random effects split the table into highest and lowest for hitters and catchers
+  - The intervals of the random effects are prediction intervals, not confidence
+    - Be sure to interpret them as prediction intervals
+  - Keep Josh Naylor and Brice Turang's scale the same using facet_wrap
+  - Separate righties vs lefties in ABS visualizations
+  - Add a conclusions slide
+    - What surprised me?
+    - What were the strongest findings?
+    - As we get more season data from players do we 
+  - See if I can scale the predictor variables so the interpretation goes from a one-unit to one-standard deviation change
+    - Make a broom plot of the beta coefficients
+  - Mention the team and umpire random effects earlier
+    
+    
+    
