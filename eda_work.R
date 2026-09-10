@@ -60,6 +60,18 @@ statcastlist_26 = list(
     mutate(
       month = 7,
       across(where(is.character), ~ na_if(., ""))
+    ),
+  aug26 = statcast_bind_rows(start_date = "2026-08-01", end_date = "2026-08-31", player_type = "pitcher") %>%
+    distinct() %>%
+    mutate(
+      month = 8,
+      across(where(is.character), ~ na_if(., ""))
+    ),
+  sept26 = statcast_bind_rows(start_date = "2026-09-01", end_date = "2026-09-09", player_type = "pitcher") %>%
+    distinct() %>%
+    mutate(
+      month = 9,
+      across(where(is.character), ~ na_if(., ""))
     )
 ) %>% 
   rbindlist()
@@ -68,7 +80,9 @@ challenge = list(
   catcher = read_csv("data/catcher.csv") %>%
     mutate(challenger = "Catcher"),
   hitter = read_csv("data/hitter.csv") %>%
-    mutate(challenger = "Hitter")
+    mutate(challenger = "Hitter"),
+  pitcher = read_csv("data/pitcher.csv") %>%
+    mutate(challenger = "Pitcher")
 ) %>%
   rbindlist() %>%
   mutate(
@@ -88,6 +102,12 @@ challenge = list(
     call_change_hitter = ifelse(challenger == "Hitter" & description == "ball", 1, 0),
     call_change_catcher = ifelse(challenger == "Catcher" & description == "called_strike", 1, 0)
   )
+
+playerid <- chadwick_player_lu()
+
+playerid <- playerid %>%
+  mutate(player_name = paste0(name_last, ", ", name_first)) %>%
+  select(key_mlbam, player_name)
 
 table(challenge$challenger)/nrow(challenge)
 
@@ -168,7 +188,7 @@ modeldata %>%
   filter(!is.na(on_1b), !is.na(on_2b), !is.na(on_3b), count == "3-2", description != "called_strike") %>%
   view()
 
-winprobabilities <- modeldata %>%
+runexpectancies <- modeldata %>%
   mutate(on_1b_ind = ifelse(!is.na(on_1b), 1, 0), on_2b_ind = ifelse(!is.na(on_2b), 1, 0), on_3b_ind = ifelse(!is.na(on_3b), 1, 0),
          delta_runexp = ifelse(home_team == bat_team, delta_run_exp, delta_run_exp * -1), 
          scorediff = ifelse(home_team == bat_team, bat_score_diff, bat_score_diff * -1),
@@ -179,7 +199,7 @@ winprobabilities <- modeldata %>%
   mutate(rowid = row_number()) %>%
   view()
 
-winprobabilities2 <- merge(winprobabilities, winprobabilities, by = c(1:6)) %>%
+runexpectancies2 <- merge(winprobabilities, winprobabilities, by = c(1:6)) %>%
   filter(rowid.x != rowid.y) %>%
   rename(description_ind = description_ind.x) %>%
   view()

@@ -5,7 +5,7 @@ Meeting with Greg
     - Tell me what the data is
   - Second slide should be a model slide
   - Explicitly state the response variable in the methodology
-  - Split the methodology slide int a data slide and a methodology slide
+  - Split the methodology slide into a data slide and a methodology slide
     - In the data slide talk about the number of pitches that were challenged out of the sample
     - 2x2 table with a challenge and whether or not it was overturned
       - Top right would be a zero since no challenge can't be overturned
@@ -32,5 +32,12 @@ Meeting with Greg
     - Make a broom plot of the beta coefficients
   - Mention the team and umpire random effects earlier
     
+Meeting With Greg
+
+  - Create a function to visualize the distribution of challenge opportunities remaining in any given game state
+    - Distribution of called strikes or called balls
+      - Guesses for called strikes: 34 (Steven) or 31 (Greg)
+    - Mutate a variable that says outs balls strikes (so 1632 is 16 outs, 3 balls, 2 strikes)
+    - Visualize a distribution of challenges per hitter and catcher over the 2026 season
     
     
