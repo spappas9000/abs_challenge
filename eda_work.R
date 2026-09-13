@@ -1,80 +1,10 @@
-
-install_github("BillPetti/baseballr")
-
-install.packages("baseballr")
-
 library(tidyverse)
 library(baseballr)
 library(data.table)
+library(arrow)
 
-statcast_bind_rows <- function(start_date, end_date, player_type) {
-  
-  start <- as.Date(start_date)
-  end <- as.Date(end_date) - 1
-  range <- seq(start, end, "5 days")
-  range_offset <- seq(start + 5, end + 5, "5 days")
-  
-  if (range_offset[length(range_offset)] != end + 1) {
-    range_offset[length(range_offset)] <- end + 1
-  }
-  
-  stats_list <- map2_df(range, range_offset, function(x, y) {
-    baseballr::statcast_search(
-      start_date = x,
-      end_date = y,
-      player_type = player_type
-    )
-  })
-  
-  return(stats_list)
-  
-}
-
-statcastlist_26 = list(
-  april26 = statcast_bind_rows(start_date = "2026-03-25", end_date = "2026-04-30", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 4,
-      across(where(is.character), ~ na_if(., ""))
-    ),
-  may26 = statcast_bind_rows(start_date = "2026-05-01", end_date = "2026-05-31", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 5,
-      across(where(is.character), ~ na_if(., ""))
-    ),
-  june26 = statcast_bind_rows(start_date = "2026-06-01", end_date = "2026-06-30", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 6,
-      across(where(is.character), ~ na_if(., ""))
-    ),
-  july26_1 = statcast_bind_rows(start_date = "2026-07-01", end_date = "2026-07-12", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 7,
-      across(where(is.character), ~ na_if(., ""))
-    ),
-  july26_2 = statcast_bind_rows(start_date = "2026-07-16", end_date = "2026-07-31", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 7,
-      across(where(is.character), ~ na_if(., ""))
-    ),
-  aug26 = statcast_bind_rows(start_date = "2026-08-01", end_date = "2026-08-31", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 8,
-      across(where(is.character), ~ na_if(., ""))
-    ),
-  sept26 = statcast_bind_rows(start_date = "2026-09-01", end_date = "2026-09-09", player_type = "pitcher") %>%
-    distinct() %>%
-    mutate(
-      month = 9,
-      across(where(is.character), ~ na_if(., ""))
-    )
-) %>% 
-  rbindlist()
+statcastlist_26 <- read_parquet("data/statcast09-13-26.parquet")
+playerid <- read_csv("data/chadwick_batters.csv")
 
 challenge = list(
   catcher = read_csv("data/catcher.csv") %>%
@@ -100,14 +30,63 @@ challenge = list(
     challenge_hitter = ifelse(challenger == "Hitter", 1, 0),
     challenge_catcher = ifelse(challenger == "Catcher", 1, 0),
     call_change_hitter = ifelse(challenger == "Hitter" & description == "ball", 1, 0),
-    call_change_catcher = ifelse(challenger == "Catcher" & description == "called_strike", 1, 0)
+    call_change_catcher = ifelse(challenger == "Catcher" & description == "called_strike", 1, 0),
+    call_change = ifelse(call_change_hitter == 1 | call_change_catcher == 1, 1, 0)
   )
-
-playerid <- chadwick_player_lu()
 
 playerid <- playerid %>%
   mutate(player_name = paste0(name_last, ", ", name_first)) %>%
   select(key_mlbam, player_name)
+
+modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
+  filter(description %in% c("blocked_ball", "ball", "called_strike", "pitchout"),
+         !des %in% c("Cedric Mullins called out on strikes. Cedric Mullins to 1st. Passed ball by catcher Mickey Gasper.",
+                     "Jacob Young called out on strikes. Jacob Young to 1st. Passed ball by catcher Gabriel Moreno."),
+         grepl("catcher interference", des) == F,
+         plate_x <= 1.666 & plate_x >= -1.666,
+         plate_z <= 4.5 & plate_z >= 0.5) %>%
+  distinct(game_pk, at_bat_number, pitch_number, .keep_all = T) %>%
+  mutate(
+    count = paste0(balls, "-", strikes),
+    challenge = ifelse(is.na(challenge), 0, challenge),
+    challenge_hitter = ifelse(is.na(challenge_hitter), 0, challenge_hitter),
+    challenge_catcher = ifelse(is.na(challenge_catcher), 0, challenge_catcher),
+    call_change_hitter = ifelse(is.na(call_change_hitter), 0, call_change_hitter),
+    call_change_catcher = ifelse(is.na(call_change_catcher), 0, call_change_catcher),
+    plate_z_adj = plate_z - ((sz_top - sz_bot)/2 + sz_bot),
+    plate_x_adj = case_when(stand == "L" & plate_x >= 0 ~ -abs(plate_x),
+                            stand == "L" & plate_x < 0 ~ abs(plate_x),
+                            stand == "R" & plate_x >= 0 ~ abs(plate_x),
+                            stand == "R" & plate_x < 0 ~ -abs(plate_x)),
+    pfx_x_adj = case_when(p_throws == "R" & stand == "R" & pfx_x < 0 ~ -abs(pfx_x),
+                          p_throws == "R" & stand == "L" & pfx_x >= 0 ~ -abs(pfx_x),
+                          p_throws == "L" & stand == "R" & pfx_x < 0 ~ -abs(pfx_x),
+                          p_throws == "L" & stand == "L" & pfx_x >= 0 ~ -abs(pfx_x),
+                          .default = abs(pfx_x)),
+    pitch_class = case_when(
+      pitch_type %in% c("FF", "SI", "FC") ~ "Fastball",
+      pitch_type %in% c("CH", "FS", "FO", "SC") ~ "Offspeed",
+      pitch_type %in% c("CU", "KC", "ST", "SL", "CS", "SV", "KN") ~ "Breaking",
+      .default = NA
+    ),
+    bat_team = ifelse(inning_topbot == "Top", away_team, home_team),
+    def_team = ifelse(inning_topbot == "Top", home_team, away_team),
+    def_score_diff = ifelse(away_team == def_team, bat_score_diff * -1, bat_score_diff),
+    on_1b_ind = ifelse(!is.na(on_1b), 1, 0),
+    on_2b_ind = ifelse(!is.na(on_2b), 1, 0),
+    on_3b_ind = ifelse(!is.na(on_1b), 1, 0),
+    description_ind = ifelse(description == "called_strike", "strike", "ball"),
+    hand_match = case_when(
+      stand == "L" & p_throws == "L" | stand == "R" & p_throws == "R" ~ 1,
+      .default = 0
+    )
+  ) %>%
+  left_join(winprobabilities2, by = c("on_1b_ind", "on_2b_ind", "on_3b_ind", "balls", "strikes", "outs_when_up", "description_ind")) %>%
+  mutate(delta = abs(delta_run_exp_2.x - delta_run_exp_2.y))
+
+chase <- read_csv("data/chase.csv") %>%
+  mutate(batter = as.character(player_id)) %>%
+  select(batter, 3:5)
 
 table(challenge$challenger)/nrow(challenge)
 
@@ -172,10 +151,6 @@ summary(aov(call_change ~ challenger + inning, data = challenge))
 summary(aov(call_change ~ challenger + factor(inning), data = challenge))
 
 summary(aov(call_change ~ challenger + inning + pitch_class, data = challenge))
-
-chase <- read_csv("data/chase.csv") %>%
-  mutate(batter = as.character(player_id)) %>%
-  select(batter, 3:5)
 
 modeldata %>%
   filter(outs_when_up == 1, !is.na(on_1b), !is.na(on_2b), !is.na(on_3b), home_team == bat_team, description == "ball", 
