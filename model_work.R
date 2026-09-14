@@ -53,7 +53,7 @@ modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
       .default = 0
     )
   ) %>%
-  left_join(winprobabilities2, by = c("on_1b_ind", "on_2b_ind", "on_3b_ind", "balls", "strikes", "outs_when_up", "description_ind")) %>%
+  left_join(runexpectancies2, by = c("on_1b_ind", "on_2b_ind", "on_3b_ind", "balls", "strikes", "outs_when_up", "description_ind")) %>%
   mutate(delta = abs(delta_run_exp_2.x - delta_run_exp_2.y))
 
 game_pks <- unique(modeldata$game_pk)
