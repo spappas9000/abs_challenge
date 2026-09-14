@@ -174,7 +174,7 @@ runexpectancies <- modeldata %>%
   mutate(rowid = row_number()) %>%
   view()
 
-runexpectancies2 <- merge(winprobabilities, winprobabilities, by = c(1:6)) %>%
+runexpectancies2 <- merge(runexpectancies, runexpectancies, by = c(1:6)) %>%
   filter(rowid.x != rowid.y) %>%
   rename(description_ind = description_ind.x) %>%
   view()
