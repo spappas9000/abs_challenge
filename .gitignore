@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 takedistribution/statcastdata.rds
+takedistribution/rsconnect/connect.posit.cloud/spappas9000/take_distribution.dcf
+takedistribution/.DS_Store
