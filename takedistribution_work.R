@@ -21,11 +21,11 @@ takefunction <- function(b, s, o) {
     arrange(game_pk, bat_team, -desc(at_bat_number), -desc(pitch_number)) %>%
     group_by(game_pk, bat_team) %>%
     mutate(is_strike = description %in% c("called_strike"),
-           strikes_total = length(which(description %in% c("called_strike"))),
+           strikes_total = sum(is_strike),
            strikes_upto = cumsum(is_strike),
            strikesremaining = strikes_total - strikes_upto,
            is_ball = description %in% c("ball", "blocked_ball", "pitchout"),
-           balls_total = length(which(description %in% c("ball", "blocked_ball", "pitchout"))),
+           balls_total = sum(is_ball),
            balls_upto = cumsum(is_ball),
            ballsremaining = balls_total - balls_upto) %>%
     ungroup() %>%
