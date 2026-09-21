@@ -12,7 +12,7 @@ extra_inning_cap <- 10
 
 statcastlist_26 <- read_parquet("data/statcastlist_26.parquet")
 
-playerid <- read_csv("data/chadwick_batters.csv")
+playerid <- read_csv("data/chadwick_players.csv")
 
 umps <- read_csv("data/home_plate_umps.csv")
 

@@ -13,5 +13,5 @@ plots/
 # Large generated/reference data — exceeds GitHub's 100MB file limit.
 # See README §2 for how to regenerate or where to copy these from.
 data/*.parquet
-data/chadwick_batters.csv
+data/chadwick_players.csv
 data/*-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv
