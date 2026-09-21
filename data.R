@@ -102,7 +102,7 @@ runexpectancies <- modeldata %>%
          scorediff = ifelse(home_team == bat_team, bat_score_diff, bat_score_diff * -1),
          description_ind = ifelse(description == "called_strike", "strike", "ball")) %>%
   group_by(on_1b_ind, on_2b_ind, on_3b_ind, outs_when_up, balls, strikes, description_ind) %>%
-  reframe(delta_run_exp_2 = mean(delta_run_exp), max_runexp = max(delta_run_exp), min_runexp = min(delta_run_exp), 
+  reframe(delta_run_exp_2 = mean(delta_run_exp, na.rm = TRUE), max_runexp = max(delta_run_exp, na.rm = TRUE), min_runexp = min(delta_run_exp, na.rm = TRUE), 
           N = n()) %>%
   mutate(rowid = row_number())
 
