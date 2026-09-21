@@ -6,9 +6,15 @@ library(baseballr)
 library(data.table)
 library(arrow)
 
-statcastlist_26 <- read_parquet("data/statcast09-13-26.parquet")
+# All extra innings are binned with the 10th inning. Setting it as a variable prevents
+# drift if we ever want to change this.
+extra_inning_cap <- 10
+
+statcastlist_26 <- read_parquet("data/statcastlist_26.parquet")
 
 playerid <- read_csv("data/chadwick_batters.csv")
+
+umps <- read_csv("data/home_plate_umps.csv")
 
 challenge = list(
   catcher = read_csv("data/catcher.csv") %>%
@@ -27,7 +33,7 @@ challenge = list(
       .default = NA
     ),
     inning = case_when(
-      inning > 9 ~ 10,
+      inning > 9 ~ extra_inning_cap,
       .default = inning
     ),
     challenge = 1,
@@ -51,6 +57,10 @@ modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
          plate_z <= 4.5 & plate_z >= 0.5) %>%
   distinct(game_pk, at_bat_number, pitch_number, .keep_all = T) %>%
   mutate(
+    inning = case_when(
+      inning > 9 ~ extra_inning_cap,
+      .default = inning
+    ),
     count = paste0(balls, "-", strikes),
     challenge = ifelse(is.na(challenge), 0, challenge),
     challenge_hitter = ifelse(is.na(challenge_hitter), 0, challenge_hitter),
@@ -78,7 +88,7 @@ modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
     def_score_diff = ifelse(away_team == def_team, bat_score_diff * -1, bat_score_diff),
     on_1b_ind = ifelse(!is.na(on_1b), 1, 0),
     on_2b_ind = ifelse(!is.na(on_2b), 1, 0),
-    on_3b_ind = ifelse(!is.na(on_1b), 1, 0),
+    on_3b_ind = ifelse(!is.na(on_3b), 1, 0),
     description_ind = ifelse(description == "called_strike", "strike", "ball"),
     hand_match = case_when(
       stand == "L" & p_throws == "L" | stand == "R" & p_throws == "R" ~ 1,
@@ -107,3 +117,27 @@ modeldata2 <- modeldata %>%
 chase <- read_csv("data/chase.csv") %>%
   mutate(batter = as.character(player_id)) %>%
   select(batter, 3:5)
+
+modeldata_hitter <- modeldata2 %>%
+  filter(description == "called_strike" | challenger == "Hitter", !(challenge_catcher == 1 & description == "called_strike")) %>%
+  mutate(challenge_hitter_lost = challenge_hitter == 1 & call_change_hitter == 0) %>%
+  arrange(game_pk, bat_team, -desc(at_bat_number), -desc(pitch_number)) %>%
+  group_by(game_pk, bat_team) %>%
+  mutate(
+    challenges_remaining = pmax(2 + (inning > 9) - lag(cumsum(challenge_hitter_lost), default = 0), 0) # ADJUST CODE FOR EXTRA INNINGS
+  ) %>%
+  ungroup() %>%
+  filter(challenges_remaining != 0) %>%
+  left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk")
+
+modeldata_catcher <- modeldata2 %>%
+  filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball")) %>%
+  mutate(challenge_catcher_lost = challenge_catcher == 1 & call_change_catcher == 0) %>%
+  arrange(game_pk, def_team, -desc(at_bat_number), -desc(pitch_number)) %>%
+  group_by(game_pk, def_team) %>%
+  mutate(
+    challenges_remaining = pmax(2 - lag(cumsum(challenge_catcher_lost), default = 0), 0) # ADJUST CODE FOR EXTRA INNINGS
+  ) %>%
+  ungroup() %>%
+  filter(challenges_remaining != 0) %>%
+  left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk")

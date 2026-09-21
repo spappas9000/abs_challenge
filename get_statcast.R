@@ -8,6 +8,9 @@
 library(tidyverse)
 library(baseballr)
 library(data.table)
+library(arrow)
+library(httr)
+library(jsonlite)
 
 statcast_bind_rows <- function(start_date, end_date, player_type) {
   
@@ -77,3 +80,27 @@ statcastlist_26 = list(
     )
 ) %>% 
   rbindlist()
+
+write_parquet(statcastlist_26, "data/statcastlist_26.parquet")
+
+game_pks <- unique(statcastlist_26$game_pk)
+
+df <- data.frame()
+for (game_id in game_pks){
+  url <- paste0('http://statsapi.mlb.com/api/v1.1/game/', game_id, '/feed/live')
+  response <- GET(url)
+  content <- content(response, as = "text")
+  json_data <- fromJSON(content)
+  
+  umps <- json_data$liveData$boxscore$officials$official
+  roles <- json_data$liveData$boxscore$officials$officialType
+  
+  umps <- cbind(umps, roles) %>%
+    filter(roles == "Home Plate") %>%
+    mutate(game_pk = game_id) %>%
+    select(game_pk, fullName)
+  
+  df <- rbind(df, umps)
+}
+
+write_csv(df, "data/home_plate_umps.csv")

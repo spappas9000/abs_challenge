@@ -1,4 +1,3 @@
-
 library(tidyverse)
 library(pROC)
 library(splines)
@@ -156,7 +155,7 @@ for (i in 1:k_folds) {
   mod <- glmer(
     challenge_hitter ~ ns(plate_z_adj, 6) + ns(plate_x_adj, 6) + delta + bat_score_diff + inning + challenges_remaining +
       (1|fielder_2) + (1|batter) + (1|bat_team) + (1|def_team) + (1|umpire_hp),
-    data = modeldata_hitter,
+    data = train,
     family = "binomial",
     control = glmerControl(optimizer = "bobyqa")
   )

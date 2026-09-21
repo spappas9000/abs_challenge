@@ -2,6 +2,16 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
 takedistribution/statcastdata.rds
 takedistribution/rsconnect/connect.posit.cloud/spappas9000/take_distribution.dcf
 takedistribution/.DS_Store
+
+# Generated outputs
+plots/
+
+# Large generated/reference data — exceeds GitHub's 100MB file limit.
+# See README §2 for how to regenerate or where to copy these from.
+data/*.parquet
+data/chadwick_batters.csv
+data/*-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv
