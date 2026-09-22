@@ -49,7 +49,7 @@ playerid <- playerid %>%
   select(key_mlbam, player_name)
 
 modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
-  filter(description %in% c("blocked_ball", "ball", "called_strike", "pitchout"),
+  filter(description %in% c("ball", "called_strike"),
          !des %in% c("Cedric Mullins called out on strikes. Cedric Mullins to 1st. Passed ball by catcher Mickey Gasper.",
                      "Jacob Young called out on strikes. Jacob Young to 1st. Passed ball by catcher Gabriel Moreno."),
          grepl("catcher interference", des) == F,
@@ -89,7 +89,6 @@ modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
     on_1b_ind = ifelse(!is.na(on_1b), 1, 0),
     on_2b_ind = ifelse(!is.na(on_2b), 1, 0),
     on_3b_ind = ifelse(!is.na(on_3b), 1, 0),
-    description_ind = ifelse(description == "called_strike", "strike", "ball"),
     hand_match = case_when(
       stand == "L" & p_throws == "L" | stand == "R" & p_throws == "R" ~ 1,
       .default = 0
@@ -99,19 +98,18 @@ modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
 runexpectancies <- modeldata %>%
   mutate(on_1b_ind = ifelse(!is.na(on_1b), 1, 0), on_2b_ind = ifelse(!is.na(on_2b), 1, 0), on_3b_ind = ifelse(!is.na(on_3b), 1, 0),
          delta_runexp = ifelse(home_team == bat_team, delta_run_exp, delta_run_exp * -1), 
-         scorediff = ifelse(home_team == bat_team, bat_score_diff, bat_score_diff * -1),
-         description_ind = ifelse(description == "called_strike", "strike", "ball")) %>%
-  group_by(on_1b_ind, on_2b_ind, on_3b_ind, outs_when_up, balls, strikes, description_ind) %>%
-  reframe(delta_run_exp_2 = mean(delta_run_exp, na.rm = TRUE), max_runexp = max(delta_run_exp, na.rm = TRUE), min_runexp = min(delta_run_exp, na.rm = TRUE), 
-          N = n()) %>%
+         scorediff = ifelse(home_team == bat_team, bat_score_diff, bat_score_diff * -1)) %>%
+  group_by(on_1b_ind, on_2b_ind, on_3b_ind, outs_when_up, balls, strikes, description) %>%
+  reframe(delta_run_exp_2 = mean(delta_run_exp, na.rm = TRUE), max_runexp = max(delta_run_exp, na.rm = TRUE), 
+          min_runexp = min(delta_run_exp, na.rm = TRUE), N = n()) %>%
   mutate(rowid = row_number())
 
 runexpectancies2 <- merge(runexpectancies, runexpectancies, by = c(1:6)) %>%
   filter(rowid.x != rowid.y) %>%
-  rename(description_ind = description_ind.x)
+  rename(description = description.x)
 
 modeldata2 <- modeldata %>%
-  left_join(runexpectancies2, by = c("on_1b_ind", "on_2b_ind", "on_3b_ind", "balls", "strikes", "outs_when_up", "description_ind")) %>%
+  left_join(runexpectancies2, by = c("on_1b_ind", "on_2b_ind", "on_3b_ind", "balls", "strikes", "outs_when_up", "description")) %>%
   mutate(delta = abs(delta_run_exp_2.x - delta_run_exp_2.y))
 
 chase <- read_csv("data/chase.csv") %>%
