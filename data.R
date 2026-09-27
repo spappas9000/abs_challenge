@@ -6,6 +6,12 @@ library(baseballr)
 library(data.table)
 library(arrow)
 
+# Adding distance from the center of the ball to the edges of the zone
+# At 1.45, there are 4 challenges where miss distance > 0 that were not overturned
+# (zone agreement 100%) compared to 34 at 9/(2*pi) (zone agreement = 99.89%)
+ball_radius <- 1.45/12 # The strike zone expands by ~1 baseball, where the center of the ball is ~1/2 a baseball off of the plate.
+plate_edge <- 8.5/12 
+
 # All extra innings are binned with the 10th inning. Setting it as a variable prevents
 # drift if we ever want to change this.
 extra_inning_cap <- 10
@@ -41,7 +47,10 @@ challenge = list(
     challenge_catcher = ifelse(challenger == "Catcher", 1, 0),
     call_change_hitter = ifelse(challenger == "Hitter" & description == "ball", 1, 0),
     call_change_catcher = ifelse(challenger == "Catcher" & description == "called_strike", 1, 0),
-    call_change = ifelse(call_change_hitter == 1 | call_change_catcher == 1, 1, 0)
+    call_change = case_when(
+      call_change_catcher == 1 | call_change_hitter == 1 ~ 1,
+      .default = 0
+    )
   )
 
 playerid <- playerid %>%
@@ -110,7 +119,18 @@ runexpectancies2 <- merge(runexpectancies, runexpectancies, by = c(1:6)) %>%
 
 modeldata2 <- modeldata %>%
   left_join(runexpectancies2, by = c("on_1b_ind", "on_2b_ind", "on_3b_ind", "balls", "strikes", "outs_when_up", "description")) %>%
-  mutate(delta = abs(delta_run_exp_2.x - delta_run_exp_2.y))
+  mutate(delta = abs(delta_run_exp_2.x - delta_run_exp_2.y),
+         half_zone_ht = (sz_top - sz_bot)/2,
+         x_edge_dist = abs(plate_x_adj) - plate_edge,
+         z_edge_dist = abs(plate_z_adj) - half_zone_ht,
+         min_edge_dist = case_when(
+           x_edge_dist > 0 & z_edge_dist > 0 ~ sqrt(x_edge_dist^2 + z_edge_dist^2), # Corner: The shortest distance here will be diagonal
+           x_edge_dist > 0 & z_edge_dist <= 0 ~ x_edge_dist, # Inside/outside
+           x_edge_dist <= 0 & z_edge_dist > 0 ~ z_edge_dist, # High/low
+           x_edge_dist <= 0 & z_edge_dist <= 0 & x_edge_dist > z_edge_dist ~ x_edge_dist, # Strike, closer to inner/outer edge
+           x_edge_dist <= 0 & z_edge_dist <= 0 & x_edge_dist <= z_edge_dist ~ z_edge_dist # Strike, closer to upper/lower edge
+         ),
+         miss_dist = min_edge_dist - ball_radius)
 
 chase <- read_csv("data/chase.csv") %>%
   mutate(batter = as.character(player_id)) %>%
@@ -139,3 +159,4 @@ modeldata_catcher <- modeldata2 %>%
   ungroup() %>%
   filter(challenges_remaining != 0) %>%
   left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk")
+

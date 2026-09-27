@@ -89,5 +89,81 @@ modeldata2 %>%
   view()
 
 modeldata2 %>%
-  select(on_1b_ind, on_2b_ind, on_3b_ind, outs_when_up, balls, strikes, description_ind, description_ind.y.y, delta) %>%
+  select(on_1b_ind, on_2b_ind, on_3b_ind, outs_when_up, balls, strikes, description, description.y.y, delta) %>%
   view()
+
+# Miss distance stuff
+# Zone agreement:
+strike <- c(1:9)
+ball <- c(11:14)
+modeldata_hitter |> 
+  filter(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0 &
+           zone %in% strike) |> 
+  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
+         pitch_name, count) |> 
+  view()
+
+modeldata_catcher |> 
+  filter(miss_dist <= 0 & challenge_catcher == 1 & call_change_catcher == 0 &
+           zone %in% ball) |> 
+  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
+         pitch_name, count) |> 
+  view()
+
+# ABS agreement:
+# True balls that were called strikes and not overturned
+modeldata_hitter |> 
+  filter(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0) |>
+  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
+         pitch_name, count) |> 
+  view()
+# Two pitches: Will review footage
+# 06-16-26: Tyler Phillips (MIA) vs. Alec Bohm (PHI), Inn. 1, 1 out, 0-1 count
+#           Nicked the zone by the smallest hair.
+#           Throw em out
+
+# 05-30-26: Ryan Weathers (NYY) vs. Tyler Soderstrom (ATH), Inn. 4, 0 out, 2-0 count
+#           This one is very weird: The pitch appeared to be a ball according to 
+#           the K-Zone and looks like a ball on Savant's own pitch chart, yet the 
+#           call was upheld. On top of this, the ABS visualization didn't even show 
+#           up on the Sacramento video board or on the broadcast.
+#           Throw this one out.
+
+# True strikes that were called balls and not overturned
+modeldata_catcher |> 
+  filter(miss_dist <= 0 & challenge_catcher == 1 & call_change_catcher == 0) |>
+  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
+         pitch_name, count) |> 
+  view()
+
+# Nothing here.
+
+# Flipping ABS agreement. Pitches that were true strikes but were overturned
+modeldata_hitter |> 
+  filter(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) |>
+  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
+         pitch_name, count) |> 
+  view()
+
+# 06-26-26: Jhoan Duran (PHI) vs. Jared Young (NYM), Inn. 9, 2 out, 0-1
+#           Another strange pitch here: Appeared to be a strike according to the K-Zone
+#           but on Pitch3D is a ball (for Jared Young specifically)
+#           
+
+# Pitches that were true balls but were overturned
+modeldata_catcher |> 
+  filter(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1) |>
+  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
+         pitch_name, count) |> 
+  view()
+
+# 06-03-26: Cody Laweryson (MIN) vs. Chase Meidroth (CWS), Inn. 8, 1 out, 1-2
+#           This was a strike that barely nicked the bottom of the zone on the pitcher's left
+#           side. 
+
+
+# Are there differences in the probability of challenging by different pitch types?
+# Is a changeup or fastball easier to challenge than any breaking?
+
+# Three group bys: Take the full data, group_by actual ball or strike variable, 
+# the call, and then the challenge status

@@ -1,6 +1,4 @@
 library(lme4)
-library(tidyverse)
-library(baseballr)
 library(httr)
 library(jsonlite)
 library(httr2)
@@ -287,3 +285,109 @@ catcher_re_exploration <- data.frame(
   ) %>%
   filter(upper < 0 & lower < 0 | upper > 0 & lower > 0) %>%
   left_join(playerid, by = c("catcher" = "key_mlbam"))
+
+## NEW MODELS
+# First: P(X|y_t = 0 & y_call = 1, w)
+mod3_good_challenge_hitter <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+  data = modeldata_hitter |> filter(zone > 9),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+)
+
+# Look at what the spline looks like
+# Had to remove plate location, because we want to filter the data down to pitches 
+# that weren't actually a strike --> derivative of x-z location
+
+good_hitter_re <- ranef(mod3_good_challenge_hitter, condVar = TRUE)
+
+good_hitter_re_id <- good_hitter_re$batter
+
+good_hitter_post_var <- attr(good_hitter_re_id, "postVar")
+
+good_hitter_re_exploration <- data.frame(
+  batter = as.numeric(rownames(good_hitter_re_id)),
+  estimate = good_hitter_re_id[, "(Intercept)"],
+  se = sqrt(good_hitter_post_var[1, 1, ])
+) %>%
+  mutate(
+    lower = estimate - 1.96 * se,
+    upper = estimate + 1.96 * se
+  ) %>%
+# filter(upper < 0 & lower < 0 | upper > 0 & lower > 0) %>%
+  left_join(playerid, by = c("batter" = "key_mlbam"))
+
+vif(mod3_good_challenge_hitter)
+
+summary(mod3_good_challenge_hitter)
+
+# Testing for overdispersion using DHARMa
+testDispersion(mod3_good_challenge_hitter)
+# Dispersion = 1.0443, p < 2.2*e^[-16]
+set.seed(1989)
+residuals_sim <- simulateResiduals(fittedModel = mod3_good_challenge_hitter, plot = TRUE)
+
+plotResiduals(residuals_sim, quantreg = TRUE)
+plotQQunif(residuals_sim)
+confint.merMod(mod3_good_challenge_hitter, level = 0.95, devmatchtol = 1e-4)
+
+isSingular(mod3_good_challenge_hitter)
+
+mod4_bad_challenge_hitter <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+  data = modeldata_hitter |> filter(miss_dist <= 0),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+# Umpire_hp is a zero-variance term for this model
+vif(mod4_bad_challenge_hitter)
+summary(mod4_bad_challenge_hitter)
+
+testDispersion(mod4_bad_challenge_hitter)
+# Dispersion = 1.0539, p-value = 0.016
+set.seed(1989)
+residuals_sim2 <- simulateResiduals(fittedModel = mod4_bad_challenge_hitter, plot = TRUE)
+plotResiduals(residuals_sim2, quantreg = TRUE)
+plotQQunif(residuals_sim2)
+
+## Catcher Models
+mod5_good_challenge_catcher <- glmer(
+  challenge_catcher ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+  data = modeldata_catcher |> filter(zone %in% c(1:9)),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+
+vif(mod5_good_challenge_catcher)
+summary(mod5_good_challenge_catcher)
+
+testDispersion(mod5_good_challenge_catcher)
+# Dispersion = 1.012, p-value = 0.472
+set.seed(1989)
+residuals_sim3 <- simulateResiduals(fittedModel = mod5_good_challenge_catcher, plot = TRUE)
+plotResiduals(residuals_sim3, quantreg = TRUE)
+plotQQunif(residuals_sim3)
+
+mod6_bad_challenge_catcher <- glmer(
+  challenge_catcher ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+  data = modeldata_catcher |> filter(zone > 9),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+# This model needed to have bobyqa's maxfun expanded to 2e5 instead of the default
+
+VarCorr(mod6_bad_challenge_catcher)
+
+vif(mod6_bad_challenge_catcher)
+summary(mod6_bad_challenge_catcher)
+
+testDispersion(mod6_bad_challenge_catcher)
+# Dispersion = 1.012, p-value = 0.472
+set.seed(1989)
+residuals_sim4 <- simulateResiduals(fittedModel = mod6_bad_challenge_catcher, plot = TRUE)
+plotResiduals(residuals_sim4, quantreg = TRUE)
+plotQQunif(residuals_sim4)

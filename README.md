@@ -151,9 +151,11 @@ that way — `get_statcast.R` must never `source("data.R")`, because on a fresh 
 
 Key derived variables:
 
-- **`plate_x_adj` / `plate_z_adj`** — location re-centered so positive x is always inside
-  to the batter and z is relative to the middle of that batter's strike zone. Use these,
-  not raw `plate_x` / `plate_z`, in models.
+- **`plate_x_adj` / `plate_z_adj`** — location re-signed so the sign means the same thing
+  for both stances: **negative x is INSIDE to the batter**, positive is outside/away. `z`
+  is relative to the middle of that batter's strike zone. Use these, not raw `plate_x` /
+  `plate_z`, in models. (This line used to say positive was inside — it was wrong. The
+  correct sign is verified three ways in `CODEBOOK.md` §7.)
 - **`delta`** — absolute run-expectancy difference between the call as made and the call
   reversed, for that base-out-count state. The "how much does this pitch matter"
   predictor. Note it is a **state-level** value: every pitch sharing a state gets an
