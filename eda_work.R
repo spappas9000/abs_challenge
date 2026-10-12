@@ -141,8 +141,6 @@ modeldata_catcher |>
 # Flipping ABS agreement. Pitches that were true strikes but were overturned
 modeldata_hitter |> 
   filter(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) |>
-  select(game_date, player_name, home_team, away_team, outs_when_up, inning, inning_topbot,
-         pitch_name, count) |> 
   view()
 
 # 06-26-26: Jhoan Duran (PHI) vs. Jared Young (NYM), Inn. 9, 2 out, 0-1
@@ -162,8 +160,52 @@ modeldata_catcher |>
 #           side. 
 
 
+
 # Are there differences in the probability of challenging by different pitch types?
+modeldata_hitter |> 
+  filter(!is.na(pitch_class)) |> 
+  group_by(pitch_class) |> 
+  summarise(
+    n = n(),
+    n_opp = sum(miss_dist > 0),
+    p_opp = n_opp / n,
+    n_chal = sum(challenge_hitter),
+    p_chal = n_chal / n,
+    n_good_chal = sum(challenge_hitter & miss_dist > 0),
+    p_good_chal = n_good_chal / n_chal,
+    n_bad_chal = n_chal - n_good_chal,
+    p_bad_chal = 1 - p_good_chal
+  )
+
+modeldata_catcher |> 
+  filter(!is.na(pitch_class)) |> 
+  group_by(pitch_class) |> 
+  summarise(
+    n = n(),
+    n_opp = sum(miss_dist <= 0),
+    p_opp = n_opp / n,
+    n_chal = sum(challenge_catcher),
+    p_chal = n_chal / n,
+    n_good_chal = sum(challenge_catcher & miss_dist <= 0),
+    p_good_chal = n_good_chal / n_chal,
+    n_bad_chal = n_chal - n_good_chal,
+    p_bad_chal = 1 - p_good_chal
+  )
 # Is a changeup or fastball easier to challenge than any breaking?
 
 # Three group bys: Take the full data, group_by actual ball or strike variable, 
 # the call, and then the challenge status
+challenge_table <- modeldata2 |> 
+  filter(!is.na(pitch_class)) |> 
+  mutate(
+    truth = if_else(miss_dist > 0, "ball", "strike"),
+    call = case_when(
+      call_change_catcher == 1 ~ "ball",
+      call_change_hitter == 1 ~ "strike",
+      description == "called_strike" ~ "strike",
+      description == "ball" ~ "ball"
+    )
+  ) |> 
+  group_by(pitch_class, truth, call, challenge) |> 
+  summarise(n = n(), .groups = "drop_last") |> 
+  mutate(pct = n / sum(n))

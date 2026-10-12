@@ -88,8 +88,8 @@ modeldata <- rbind(challenge, statcastlist_26, fill = T) %>%
                           .default = abs(pfx_x)),
     pitch_class = case_when(
       pitch_type %in% c("FF", "SI", "FC") ~ "Fastball",
-      pitch_type %in% c("CH", "FS", "FO", "SC") ~ "Offspeed",
-      pitch_type %in% c("CU", "KC", "ST", "SL", "CS", "SV", "KN") ~ "Breaking",
+      pitch_type %in% c("CH", "FS", "FO", "SC", "KN", "EP") ~ "Offspeed",
+      pitch_type %in% c("CU", "KC", "ST", "SL", "CS", "SV") ~ "Breaking",
       .default = NA
     ),
     bat_team = ifelse(inning_topbot == "Top", away_team, home_team),
@@ -132,31 +132,37 @@ modeldata2 <- modeldata %>%
          ),
          miss_dist = min_edge_dist - ball_radius)
 
+# Dropping 
+
 chase <- read_csv("data/chase.csv") %>%
   mutate(batter = as.character(player_id)) %>%
   select(batter, 3:5)
 
 modeldata_hitter <- modeldata2 %>%
-  filter(description == "called_strike" | challenger == "Hitter", !(challenge_catcher == 1 & description == "called_strike")) %>%
+  filter(description == "called_strike" | challenger == "Hitter", !(challenge_catcher == 1 & description == "called_strike"), !(inning > 9)) %>%
   mutate(challenge_hitter_lost = challenge_hitter == 1 & call_change_hitter == 0) %>%
   arrange(game_pk, bat_team, -desc(at_bat_number), -desc(pitch_number)) %>%
   group_by(game_pk, bat_team) %>%
   mutate(
-    challenges_remaining = pmax(2 + (inning > 9) - lag(cumsum(challenge_hitter_lost), default = 0), 0) # ADJUST CODE FOR EXTRA INNINGS
+    challenges_remaining = pmax(2 - lag(cumsum(challenge_hitter_lost), default = 0), 0)
   ) %>%
   ungroup() %>%
   filter(challenges_remaining != 0) %>%
-  left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk")
+  left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
+  # Pulling out the ABS disagreements
+  filter(!(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) | !(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0))
+
 
 modeldata_catcher <- modeldata2 %>%
-  filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball")) %>%
+  filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball"), !(inning > 9)) %>%
   mutate(challenge_catcher_lost = challenge_catcher == 1 & call_change_catcher == 0) %>%
   arrange(game_pk, def_team, -desc(at_bat_number), -desc(pitch_number)) %>%
   group_by(game_pk, def_team) %>%
   mutate(
-    challenges_remaining = pmax(2 - lag(cumsum(challenge_catcher_lost), default = 0), 0) # ADJUST CODE FOR EXTRA INNINGS
+    challenges_remaining = pmax(2 - lag(cumsum(challenge_catcher_lost), default = 0), 0)
   ) %>%
   ungroup() %>%
   filter(challenges_remaining != 0) %>%
-  left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk")
-
+  left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
+  # Pulling out the ABS disagreements
+  filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1))

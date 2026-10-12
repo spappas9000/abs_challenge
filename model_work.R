@@ -7,6 +7,7 @@ library(caret)
 library(pROC)
 library(MLmetrics)
 library(splines)
+library(DHARMa)
 source("data.R")
 
 ## ---- Hitting Models ----
@@ -288,13 +289,20 @@ catcher_re_exploration <- data.frame(
 
 ## NEW MODELS
 # First: P(X|y_t = 0 & y_call = 1, w)
-mod3_good_challenge_hitter <- glmer(
-  challenge_hitter ~ ns(miss_dist, 2) + delta + bat_score_diff + 
-    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_hitter |> filter(zone > 9),
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
-)
+# mod3_good_challenge_hitter <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
+#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_hitter |> filter(zone > 9),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+# )
+
+mod3_good_challenge_hitter <- readRDS("mod3_good_challenge_hitter.RDS")
+
+# If stuff doesn't converge: scale the variable or try different optimizers. I don't
+# need to use the same optimizer 
+
+# There has to be a function somewhere that will converge these splines to 
 
 # Look at what the spline looks like
 # Had to remove plate location, because we want to filter the data down to pitches 
@@ -327,15 +335,16 @@ testDispersion(mod3_good_challenge_hitter)
 # Dispersion = 1.0443, p < 2.2*e^[-16]
 set.seed(1989)
 residuals_sim <- simulateResiduals(fittedModel = mod3_good_challenge_hitter, plot = TRUE)
+res_hitter <- recalculateResiduals(residuals_sim, group = mod3_good_challenge_hitter@frame$batter)
+testDispersion(res_hitter)
 
-plotResiduals(residuals_sim, quantreg = TRUE)
-plotQQunif(residuals_sim)
-confint.merMod(mod3_good_challenge_hitter, level = 0.95, devmatchtol = 1e-4)
+# Overdispersion: seems to be caused by the batter random effect
 
 isSingular(mod3_good_challenge_hitter)
 
+
 mod4_bad_challenge_hitter <- glmer(
-  challenge_hitter ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+  challenge_hitter ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
   data = modeldata_hitter |> filter(miss_dist <= 0),
   family = "binomial",
@@ -350,11 +359,10 @@ testDispersion(mod4_bad_challenge_hitter)
 set.seed(1989)
 residuals_sim2 <- simulateResiduals(fittedModel = mod4_bad_challenge_hitter, plot = TRUE)
 plotResiduals(residuals_sim2, quantreg = TRUE)
-plotQQunif(residuals_sim2)
 
 ## Catcher Models
 mod5_good_challenge_catcher <- glmer(
-  challenge_catcher ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+  challenge_catcher ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
   data = modeldata_catcher |> filter(zone %in% c(1:9)),
   family = "binomial",
@@ -372,7 +380,7 @@ plotResiduals(residuals_sim3, quantreg = TRUE)
 plotQQunif(residuals_sim3)
 
 mod6_bad_challenge_catcher <- glmer(
-  challenge_catcher ~ ns(miss_dist, 2) + delta + bat_score_diff + 
+  challenge_catcher ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) + 
     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
   data = modeldata_catcher |> filter(zone > 9),
   family = "binomial",

@@ -72,7 +72,7 @@ statcastlist_26 = list(
       month = 8,
       across(where(is.character), ~ na_if(., ""))
     ),
-  sept26 = statcast_bind_rows(start_date = "2026-09-01", end_date = "2026-09-09", player_type = "pitcher") %>%
+  sept26 = statcast_bind_rows(start_date = "2026-09-01", end_date = "2026-09-27", player_type = "pitcher") %>%
     distinct() %>%
     mutate(
       month = 9,
