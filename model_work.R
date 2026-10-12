@@ -339,17 +339,18 @@ res_hitter <- recalculateResiduals(residuals_sim, group = mod3_good_challenge_hi
 testDispersion(res_hitter)
 
 # Overdispersion: seems to be caused by the batter random effect
-
 isSingular(mod3_good_challenge_hitter)
 
+# mod4_bad_challenge_hitter <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
+#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+#   data = modeldata_hitter |> filter(miss_dist <= 0),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
 
-mod4_bad_challenge_hitter <- glmer(
-  challenge_hitter ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
-    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
-  data = modeldata_hitter |> filter(miss_dist <= 0),
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
+mod4_bad_challenge_hitter <- readRDS("mod4_bad_challenge_hitter.RDS")
+
 # Umpire_hp is a zero-variance term for this model
 vif(mod4_bad_challenge_hitter)
 summary(mod4_bad_challenge_hitter)
@@ -361,13 +362,15 @@ residuals_sim2 <- simulateResiduals(fittedModel = mod4_bad_challenge_hitter, plo
 plotResiduals(residuals_sim2, quantreg = TRUE)
 
 ## Catcher Models
-mod5_good_challenge_catcher <- glmer(
-  challenge_catcher ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
-    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_catcher |> filter(zone %in% c(1:9)),
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
+# mod5_good_challenge_catcher <- glmer(
+#   challenge_catcher ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
+#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_catcher |> filter(zone %in% c(1:9)),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
+
+mod5_good_challenge_catcher <- readRDS("mod5_good_challenge_catcher.RDS")
 
 vif(mod5_good_challenge_catcher)
 summary(mod5_good_challenge_catcher)
@@ -379,15 +382,16 @@ residuals_sim3 <- simulateResiduals(fittedModel = mod5_good_challenge_catcher, p
 plotResiduals(residuals_sim3, quantreg = TRUE)
 plotQQunif(residuals_sim3)
 
-mod6_bad_challenge_catcher <- glmer(
-  challenge_catcher ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) + 
-    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
-  data = modeldata_catcher |> filter(zone > 9),
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-)
+# mod6_bad_challenge_catcher <- glmer(
+#   challenge_catcher ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
+#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+#   data = modeldata_catcher |> filter(zone > 9),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
 # This model needed to have bobyqa's maxfun expanded to 2e5 instead of the default
 
+mod6_bad_challenge_catcher <- readRDS("mod6_bad_challenge_catcher.RDS")
 VarCorr(mod6_bad_challenge_catcher)
 
 vif(mod6_bad_challenge_catcher)
