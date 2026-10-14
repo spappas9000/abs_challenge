@@ -1,7 +1,4 @@
 library(lme4)
-library(httr)
-library(jsonlite)
-library(httr2)
 library(car)
 library(caret)
 library(pROC)
@@ -290,21 +287,16 @@ catcher_re_exploration <- data.frame(
 ## NEW MODELS
 # First: P(X|y_t = 0 & y_call = 1, w)
 # mod3_good_challenge_hitter <- glmer(
-#   challenge_hitter ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
 #     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
 #   data = modeldata_hitter |> filter(zone > 9),
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
 # )
+# saveRDS(mod3_good_challenge_hitter, "mod3_good_challenge_hitter.RDS")
 
 mod3_good_challenge_hitter <- readRDS("mod3_good_challenge_hitter.RDS")
 
-# If stuff doesn't converge: scale the variable or try different optimizers. I don't
-# need to use the same optimizer 
-
-# There has to be a function somewhere that will converge these splines to 
-
-# Look at what the spline looks like
 # Had to remove plate location, because we want to filter the data down to pitches 
 # that weren't actually a strike --> derivative of x-z location
 
@@ -335,19 +327,19 @@ testDispersion(mod3_good_challenge_hitter)
 # Dispersion = 1.0443, p < 2.2*e^[-16]
 set.seed(1989)
 residuals_sim <- simulateResiduals(fittedModel = mod3_good_challenge_hitter, plot = TRUE)
-res_hitter <- recalculateResiduals(residuals_sim, group = mod3_good_challenge_hitter@frame$batter)
-testDispersion(res_hitter)
+plotResiduals(residuals_sim, quantreg = TRUE)
 
 # Overdispersion: seems to be caused by the batter random effect
 isSingular(mod3_good_challenge_hitter)
 
 # mod4_bad_challenge_hitter <- glmer(
-#   challenge_hitter ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
 #     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
 #   data = modeldata_hitter |> filter(miss_dist <= 0),
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 # )
+# saveRDS(mod4_bad_challenge_hitter, "mod4_bad_challenge_hitter.RDS")
 
 mod4_bad_challenge_hitter <- readRDS("mod4_bad_challenge_hitter.RDS")
 
@@ -363,12 +355,13 @@ plotResiduals(residuals_sim2, quantreg = TRUE)
 
 ## Catcher Models
 # mod5_good_challenge_catcher <- glmer(
-#   challenge_catcher ~ ns(miss_dist, 6) + delta + scale(bat_score_diff) + 
+#   challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
 #     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
 #   data = modeldata_catcher |> filter(zone %in% c(1:9)),
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 # )
+# saveRDS(mod5_good_challenge_catcher, "mod5_good_challenge_catcher.RDS")
 
 mod5_good_challenge_catcher <- readRDS("mod5_good_challenge_catcher.RDS")
 
@@ -380,16 +373,15 @@ testDispersion(mod5_good_challenge_catcher)
 set.seed(1989)
 residuals_sim3 <- simulateResiduals(fittedModel = mod5_good_challenge_catcher, plot = TRUE)
 plotResiduals(residuals_sim3, quantreg = TRUE)
-plotQQunif(residuals_sim3)
 
 # mod6_bad_challenge_catcher <- glmer(
-#   challenge_catcher ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
+#   challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
 #     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
 #   data = modeldata_catcher |> filter(zone > 9),
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 # )
-# This model needed to have bobyqa's maxfun expanded to 2e5 instead of the default
+# saveRDS(mod6_bad_challenge_catcher, "mod6_bad_challenge_catcher.RDS")
 
 mod6_bad_challenge_catcher <- readRDS("mod6_bad_challenge_catcher.RDS")
 VarCorr(mod6_bad_challenge_catcher)
@@ -402,4 +394,93 @@ testDispersion(mod6_bad_challenge_catcher)
 set.seed(1989)
 residuals_sim4 <- simulateResiduals(fittedModel = mod6_bad_challenge_catcher, plot = TRUE)
 plotResiduals(residuals_sim4, quantreg = TRUE)
-plotQQunif(residuals_sim4)
+
+# Looking at whether or not we need the splines at the degree they're at
+mod3_data <- modeldata_hitter |> filter(zone > 9)
+
+mod3_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_hitter)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod3_fits <- list(
+  linear = glm(challenge_hitter ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod3_data)
+)
+for (k in 2:6) {
+  mod3_fits[[paste0("ns", k)]] <- update(mod3_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+# To go with the simplest model possible, BIC gives a better idea of that
+sapply(mod3_fits, BIC)
+
+#ns2 for mod3
+
+mod4_data <- modeldata_hitter |> filter(miss_dist <= 0)
+
+mod4_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_hitter)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod4_fits <- list(
+  linear = glm(challenge_hitter ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod4_data)
+)
+for (k in 2:6) {
+  mod4_fits[[paste0("ns", k)]] <- update(mod4_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+sapply(mod4_fits, BIC)
+# ns2 again
+
+# Catcher models
+mod5_data <- modeldata_catcher |> filter(zone %in% c(1:9))
+
+mod5_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_catcher)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod5_fits <- list(
+  linear = glm(challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod5_data)
+)
+for (k in 2:6) {
+  mod5_fits[[paste0("ns", k)]] <- update(mod5_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+sapply(mod5_fits, BIC) # The linear term wins out here.
+
+mod6_data <- modeldata_catcher |> filter(zone > 9)
+
+mod6_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_catcher)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod6_fits <- list(
+  linear = glm(challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod6_data)
+)
+for (k in 2:6) {
+  mod6_fits[[paste0("ns", k)]] <- update(mod6_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+sapply(mod6_fits, BIC) # The linear term wins out here as well.

@@ -166,3 +166,13 @@ modeldata_catcher <- modeldata2 %>%
   left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
   # Pulling out the ABS disagreements
   filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1))
+
+rm(statcastlist_26)
+rm(playerid)
+rm(umps)
+rm(challenge)
+rm(playerid)
+rm(modeldata)
+rm(runexpectancies)
+rm(runexpectancies2)
+rm(chase)

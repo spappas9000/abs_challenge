@@ -209,3 +209,93 @@ challenge_table <- modeldata2 |>
   group_by(pitch_class, truth, call, challenge) |> 
   summarise(n = n(), .groups = "drop_last") |> 
   mutate(pct = n / sum(n))
+
+# Looking at whether or not we need the splines at the degree they're at
+mod3_data <- modeldata_hitter |> filter(zone > 9)
+
+mod3_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_hitter)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod3_fits <- list(
+  linear = glm(challenge_hitter ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod3_data)
+)
+for (k in 2:6) {
+  mod3_fits[[paste0("ns", k)]] <- update(mod3_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+# To go with the simplest model possible, BIC gives a better idea of that
+sapply(mod3_fits, BIC)
+
+#ns2 for mod3
+
+mod4_data <- modeldata_hitter |> filter(miss_dist <= 0)
+
+mod4_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_hitter)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod4_fits <- list(
+  linear = glm(challenge_hitter ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod4_data)
+)
+for (k in 2:6) {
+  mod4_fits[[paste0("ns", k)]] <- update(mod4_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+sapply(mod4_fits, BIC)
+# ns2 again
+
+# Catcher models
+mod5_data <- modeldata_catcher |> filter(zone %in% c(1:9))
+
+mod5_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_catcher)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod5_fits <- list(
+  linear = glm(challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod5_data)
+)
+for (k in 2:6) {
+  mod5_fits[[paste0("ns", k)]] <- update(mod5_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+sapply(mod5_fits, BIC) # The linear term wins out here.
+
+mod6_data <- modeldata_catcher |> filter(zone > 9)
+
+mod6_data |> 
+  mutate(bin = cut_number(miss_dist, 25)) |> 
+  group_by(bin) |> 
+  summarise(miss_dist = mean(miss_dist), p = mean(challenge_catcher)) |> 
+  ggplot(aes(miss_dist, qlogis(p))) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
+  labs(y = "Observed log-odds of challenge")
+
+mod6_fits <- list(
+  linear = glm(challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
+               family = binomial, data = mod6_data)
+)
+for (k in 2:6) {
+  mod6_fits[[paste0("ns", k)]] <- update(mod6_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
+}
+
+sapply(mod6_fits, BIC) # The linear term wins out here as well.
