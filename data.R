@@ -174,10 +174,8 @@ modeldata_catcher <- modeldata2 %>%
   filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1))
 
 rm(statcastlist_26)
-rm(playerid)
 rm(umps)
 rm(challenge)
-rm(playerid)
 rm(modeldata)
 rm(runexpectancies)
 rm(runexpectancies2)
