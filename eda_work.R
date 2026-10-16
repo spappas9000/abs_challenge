@@ -281,3 +281,16 @@ modeldata_catcher |>
     q3 = sum(!challenge_catcher & truth == "strike"),
     q4 = sum(!challenge_catcher & truth == "ball")
   )
+
+
+## Looking at challenges
+modeldata_hitter |> 
+  filter(miss_dist <= 0) |> 
+  group_by(challenges_remaining, inning) |> 
+  summarise(n = n(),
+            p = sum(challenge_hitter)/n) |> 
+  ggplot(aes(x = inning, y = p, color = as.factor(challenges_remaining))) +
+  geom_line()
+
+# We want to find how many times a team has challenged in each game
+# Challenges happen more later in the game and also when a team only has one challenge_remaining
