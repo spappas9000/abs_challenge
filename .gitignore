@@ -15,3 +15,6 @@ plots/
 data/*.parquet
 data/chadwick_players.csv
 data/*-20[0-9][0-9]-[0-9][0-9]-[0-9][0-9].csv
+
+# Cache for MLB api Scraping
+data/cache/
