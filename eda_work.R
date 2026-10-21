@@ -2,6 +2,7 @@ library(tidyverse)
 library(baseballr)
 library(data.table)
 library(arrow)
+library(gt)
 source("data.R")
 
 table(challenge$challenger)/nrow(challenge)
@@ -162,7 +163,7 @@ modeldata_catcher |>
 
 
 # Are there differences in the probability of challenging by different pitch types?
-modeldata_hitter |> 
+hit_chal_ps <- modeldata_hitter |> 
   filter(!is.na(pitch_class)) |> 
   group_by(pitch_class) |> 
   summarise(
@@ -171,13 +172,38 @@ modeldata_hitter |>
     p_opp = n_opp / n,
     n_chal = sum(challenge_hitter),
     p_chal = n_chal / n,
-    n_good_chal = sum(challenge_hitter & miss_dist > 0),
-    p_good_chal = n_good_chal / n_chal,
-    n_bad_chal = n_chal - n_good_chal,
-    p_bad_chal = 1 - p_good_chal
+    n_good = sum(challenge_hitter & miss_dist > 0),
+    p_good = n_good / n_chal,
+    n_bad = n_chal - n_good,
+    p_bad = 1 - p_good
   )
 
-modeldata_catcher |> 
+hit_total <- hit_chal_ps |> 
+  summarise(pitch_class = "Total", across(c(n, n_chal, n_good, n_bad), sum)) |> 
+  mutate(
+    p_chal = n_chal / n,
+    p_good = n_good / n_chal,
+    p_bad  = n_bad / n_chal
+  )
+
+hit_chal_ps |> 
+  select(-n_opp, -p_opp) |> 
+  bind_rows(hit_total) |> 
+  gt(rowname_col = "pitch_class") |> 
+  tab_header("Observed Challenge Probabilities by Pitch Class - Hitters",
+             subtitle = "C = Challenge, GC = Good Challenge, BC = Bad Challenge") |> 
+  fmt_number(columns = c(p_chal, p_good, p_bad), decimals = 3) |> 
+  fmt_integer(columns = c(n, n_chal, n_good, n_bad)) |> 
+  cols_label(n = "N", n_chal = "C", p_chal = "P(C)", n_good = "GC", p_good = "P(GC)", 
+             n_bad = "BC", p_bad = "P(BC)") |> 
+  tab_stubhead("Pitch Class") |> 
+  tab_style(
+    style = list(cell_text(weight = "bold"), cell_borders(sides = "top", weight = px(2))),
+    locations = list(cells_body(rows = pitch_class == "Total"),
+                     cells_stub(rows = pitch_class == "Total"))
+  )
+
+cat_chal_ps <- modeldata_catcher |> 
   filter(!is.na(pitch_class)) |> 
   group_by(pitch_class) |> 
   summarise(
@@ -186,10 +212,35 @@ modeldata_catcher |>
     p_opp = n_opp / n,
     n_chal = sum(challenge_catcher),
     p_chal = n_chal / n,
-    n_good_chal = sum(challenge_catcher & miss_dist <= 0),
-    p_good_chal = n_good_chal / n_chal,
-    n_bad_chal = n_chal - n_good_chal,
-    p_bad_chal = 1 - p_good_chal
+    n_good = sum(challenge_catcher & miss_dist <= 0),
+    p_good = n_good / n_chal,
+    n_bad = n_chal - n_good,
+    p_bad = 1 - p_good
+  )
+
+cat_total <- cat_chal_ps |> 
+  summarise(pitch_class = "Total", across(c(n, n_chal, n_good, n_bad), sum)) |> 
+  mutate(
+    p_chal = n_chal / n,
+    p_good = n_good / n_chal,
+    p_bad  = n_bad / n_chal
+  )
+
+cat_chal_ps |> 
+  select(-n_opp, -p_opp) |> 
+  bind_rows(cat_total) |> 
+  gt(rowname_col = "pitch_class") |> 
+  tab_header("Observed Challenge Probabilities by Pitch Class - Catchers",
+             subtitle = "C = Challenge, GC = Good Challenge, BC = Bad Challenge") |> 
+  fmt_number(columns = c(p_chal, p_good, p_bad), decimals = 3) |> 
+  fmt_integer(columns = c(n, n_chal, n_good, n_bad)) |> 
+  cols_label(n = "N", n_chal = "C", p_chal = "P(C)", p_good = "P(B|C)", 
+             n_bad = "BC", p_bad = "P(BC)") |> 
+  tab_stubhead("Pitch Class") |> 
+  tab_style(
+    style = list(cell_text(weight = "bold"), cell_borders(sides = "top", weight = px(2))),
+    locations = list(cells_body(rows = pitch_class == "Total"),
+                     cells_stub(rows = pitch_class == "Total"))
   )
 # Is a changeup or fastball easier to challenge than any breaking?
 
@@ -197,105 +248,49 @@ modeldata_catcher |>
 # the call, and then the challenge status
 challenge_table <- modeldata2 |> 
   filter(!is.na(pitch_class)) |> 
-  mutate(
-    truth = if_else(miss_dist > 0, "ball", "strike"),
-    call = case_when(
-      call_change_catcher == 1 ~ "ball",
-      call_change_hitter == 1 ~ "strike",
-      description == "called_strike" ~ "strike",
-      description == "ball" ~ "ball"
-    )
-  ) |> 
   group_by(pitch_class, truth, call, challenge) |> 
   summarise(n = n(), .groups = "drop_last") |> 
   mutate(pct = n / sum(n))
 
-# Looking at whether or not we need the splines at the degree they're at
-mod3_data <- modeldata_hitter |> filter(zone > 9)
+modeldata_hitter |> 
+  summarise(
+    n = n(),
+    yes = sum(challenge_hitter),
+    p_chal = yes/n,
+    no = n - yes,
+    s_true = sum(truth == "strike"),
+    b_true = sum(truth == "ball"),
+    q1 = sum(challenge_hitter & truth == "ball"),
+    q2 = sum(challenge_hitter & truth == "strike"),
+    q3 = sum(!challenge_hitter & truth == "ball"),
+    q4 = sum(!challenge_hitter & truth == "strike"),
+    good_chal = q1/yes,
+    bad_chal = 1 - good_chal
+  ) |> 
+  select(n, yes, good_chal, bad_chal)
 
-mod3_data |> 
-  mutate(bin = cut_number(miss_dist, 25)) |> 
-  group_by(bin) |> 
-  summarise(miss_dist = mean(miss_dist), p = mean(challenge_hitter)) |> 
-  ggplot(aes(miss_dist, qlogis(p))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
-  labs(y = "Observed log-odds of challenge")
+modeldata_catcher |> 
+  summarise(
+    n = n(),
+    yes = sum(challenge_catcher),
+    no = n - yes,
+    s_true = sum(truth == "strike"),
+    b_true = sum(truth == "ball"),
+    q1 = sum(challenge_catcher & truth == "strike"),
+    q2 = sum(challenge_catcher & truth == "ball"),
+    q3 = sum(!challenge_catcher & truth == "strike"),
+    q4 = sum(!challenge_catcher & truth == "ball")
+  )
 
-mod3_fits <- list(
-  linear = glm(challenge_hitter ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
-               family = binomial, data = mod3_data)
-)
-for (k in 2:6) {
-  mod3_fits[[paste0("ns", k)]] <- update(mod3_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
-}
 
-# To go with the simplest model possible, BIC gives a better idea of that
-sapply(mod3_fits, BIC)
+## Looking at challenges
+modeldata_hitter |> 
+  filter(miss_dist <= 0) |> 
+  group_by(challenges_remaining, inning) |> 
+  summarise(n = n(),
+            p = sum(challenge_hitter)/n) |> 
+  ggplot(aes(x = inning, y = p, color = as.factor(challenges_remaining))) +
+  geom_line()
 
-#ns2 for mod3
-
-mod4_data <- modeldata_hitter |> filter(miss_dist <= 0)
-
-mod4_data |> 
-  mutate(bin = cut_number(miss_dist, 25)) |> 
-  group_by(bin) |> 
-  summarise(miss_dist = mean(miss_dist), p = mean(challenge_hitter)) |> 
-  ggplot(aes(miss_dist, qlogis(p))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
-  labs(y = "Observed log-odds of challenge")
-
-mod4_fits <- list(
-  linear = glm(challenge_hitter ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
-               family = binomial, data = mod4_data)
-)
-for (k in 2:6) {
-  mod4_fits[[paste0("ns", k)]] <- update(mod4_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
-}
-
-sapply(mod4_fits, BIC)
-# ns2 again
-
-# Catcher models
-mod5_data <- modeldata_catcher |> filter(zone %in% c(1:9))
-
-mod5_data |> 
-  mutate(bin = cut_number(miss_dist, 25)) |> 
-  group_by(bin) |> 
-  summarise(miss_dist = mean(miss_dist), p = mean(challenge_catcher)) |> 
-  ggplot(aes(miss_dist, qlogis(p))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
-  labs(y = "Observed log-odds of challenge")
-
-mod5_fits <- list(
-  linear = glm(challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
-               family = binomial, data = mod5_data)
-)
-for (k in 2:6) {
-  mod5_fits[[paste0("ns", k)]] <- update(mod5_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
-}
-
-sapply(mod5_fits, BIC) # The linear term wins out here.
-
-mod6_data <- modeldata_catcher |> filter(zone > 9)
-
-mod6_data |> 
-  mutate(bin = cut_number(miss_dist, 25)) |> 
-  group_by(bin) |> 
-  summarise(miss_dist = mean(miss_dist), p = mean(challenge_catcher)) |> 
-  ggplot(aes(miss_dist, qlogis(p))) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE, linetype = "dashed") +
-  labs(y = "Observed log-odds of challenge")
-
-mod6_fits <- list(
-  linear = glm(challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) + challenges_remaining,
-               family = binomial, data = mod6_data)
-)
-for (k in 2:6) {
-  mod6_fits[[paste0("ns", k)]] <- update(mod6_fits$linear, . ~ . - miss_dist + ns(miss_dist, k))
-}
-
-sapply(mod6_fits, BIC) # The linear term wins out here as well.
+# We want to find how many times a team has challenged in each game
+# Challenges happen more later in the game and also when a team only has one challenge_remaining

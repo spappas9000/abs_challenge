@@ -130,7 +130,14 @@ modeldata2 <- modeldata %>%
            x_edge_dist <= 0 & z_edge_dist <= 0 & x_edge_dist > z_edge_dist ~ x_edge_dist, # Strike, closer to inner/outer edge
            x_edge_dist <= 0 & z_edge_dist <= 0 & x_edge_dist <= z_edge_dist ~ z_edge_dist # Strike, closer to upper/lower edge
          ),
-         miss_dist = min_edge_dist - ball_radius)
+         miss_dist = min_edge_dist - ball_radius,
+         truth = if_else(miss_dist > 0, "ball", "strike"),
+         call = case_when(
+           call_change_catcher == 1 ~ "ball",
+           call_change_hitter == 1 ~ "strike",
+           description == "called_strike" ~ "strike",
+           description == "ball" ~ "ball"
+         ))
 
 # Dropping 
 
@@ -152,7 +159,6 @@ modeldata_hitter <- modeldata2 %>%
   # Pulling out the ABS disagreements
   filter(!(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) | !(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0))
 
-
 modeldata_catcher <- modeldata2 %>%
   filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball"), !(inning > 9)) %>%
   mutate(challenge_catcher_lost = challenge_catcher == 1 & call_change_catcher == 0) %>%
@@ -168,10 +174,8 @@ modeldata_catcher <- modeldata2 %>%
   filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1))
 
 rm(statcastlist_26)
-rm(playerid)
 rm(umps)
 rm(challenge)
-rm(playerid)
 rm(modeldata)
 rm(runexpectancies)
 rm(runexpectancies2)

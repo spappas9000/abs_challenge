@@ -295,6 +295,9 @@ catcher_re_exploration <- data.frame(
 # )
 # saveRDS(mod3_good_challenge_hitter, "mod3_good_challenge_hitter.RDS")
 
+## Try some interaction effects
+## Add random effect for hitting team
+
 mod3_good_challenge_hitter <- readRDS("mod3_good_challenge_hitter.RDS")
 
 # Had to remove plate location, because we want to filter the data down to pitches 
@@ -321,6 +324,19 @@ good_hitter_re_exploration <- data.frame(
 vif(mod3_good_challenge_hitter)
 
 summary(mod3_good_challenge_hitter)
+# Challenges remaining is very much not significant
+
+# 
+newdata <- data.frame(
+  delta = 0,
+  bat_score_diff = 0,
+  challenges_remaining = 1,
+  miss_dist = seq(0, 0.35, 0.01)
+)
+
+pred <- predict(mod3_good_challenge_hitter, newdata, re.form = NA, type = "response")
+
+plot(newdata$miss_dist, pred)
 
 # Testing for overdispersion using DHARMa
 testDispersion(mod3_good_challenge_hitter)
@@ -328,9 +344,6 @@ testDispersion(mod3_good_challenge_hitter)
 set.seed(1989)
 residuals_sim <- simulateResiduals(fittedModel = mod3_good_challenge_hitter, plot = TRUE)
 plotResiduals(residuals_sim, quantreg = TRUE)
-
-# Overdispersion: seems to be caused by the batter random effect
-isSingular(mod3_good_challenge_hitter)
 
 # mod4_bad_challenge_hitter <- glmer(
 #   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
@@ -346,6 +359,21 @@ mod4_bad_challenge_hitter <- readRDS("mod4_bad_challenge_hitter.RDS")
 # Umpire_hp is a zero-variance term for this model
 vif(mod4_bad_challenge_hitter)
 summary(mod4_bad_challenge_hitter)
+
+# I am less likely to challenge if I have more challenges
+# Can we find the challenges when players have them to burn?
+# 
+
+newdata <- data.frame(
+  delta = 0,
+  bat_score_diff = 0,
+  challenges_remaining = 1,
+  miss_dist = seq(0, 0.35, 0.01)
+)
+
+pred <- predict(mod4_bad_challenge_hitter, newdata, re.form = NA, type = "response")
+
+plot(newdata$miss_dist, pred)
 
 testDispersion(mod4_bad_challenge_hitter)
 # Dispersion = 1.0539, p-value = 0.016
@@ -367,6 +395,17 @@ mod5_good_challenge_catcher <- readRDS("mod5_good_challenge_catcher.RDS")
 
 vif(mod5_good_challenge_catcher)
 summary(mod5_good_challenge_catcher)
+
+newdata <- data.frame(
+  delta = 0,
+  bat_score_diff = 0,
+  challenges_remaining = 1,
+  miss_dist = seq(0, 0.35, 0.01)
+)
+
+pred <- predict(mod5_good_challenge_catcher, newdata, re.form = NA, type = "response")
+
+plot(newdata$miss_dist, pred)
 
 testDispersion(mod5_good_challenge_catcher)
 # Dispersion = 1.012, p-value = 0.472
