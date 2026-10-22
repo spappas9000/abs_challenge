@@ -287,46 +287,21 @@ catcher_re_exploration <- data.frame(
 ## NEW MODELS
 # First: P(X|y_t = 0 & y_call = 1, w)
 # mod3_good_challenge_hitter <- glmer(
-#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
-#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-#   data = modeldata_hitter |> filter(zone > 9),
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+#     (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
 # )
 # saveRDS(mod3_good_challenge_hitter, "mod3_good_challenge_hitter.RDS")
+mod3_good_challenge_hitter <- read_rds("mod3_good_challenge_hitter.RDS")
 
-## Try some interaction effects
-## Add random effect for hitting team
+## 1. Try some interaction effects with challenges_remaining
+# I tried bat_score_diff*challenges_remaining which was significant, and miss_dist*challenges_remaining which was not.
+## 2. Add random effect for hitting team
+# Surprisingly had ~0 variance and caused singularity
 
-mod3_good_challenge_hitter <- readRDS("mod3_good_challenge_hitter.RDS")
-
-# Had to remove plate location, because we want to filter the data down to pitches 
-# that weren't actually a strike --> derivative of x-z location
-
-good_hitter_re <- ranef(mod3_good_challenge_hitter, condVar = TRUE)
-
-good_hitter_re_id <- good_hitter_re$batter
-
-good_hitter_post_var <- attr(good_hitter_re_id, "postVar")
-
-good_hitter_re_exploration <- data.frame(
-  batter = as.numeric(rownames(good_hitter_re_id)),
-  estimate = good_hitter_re_id[, "(Intercept)"],
-  se = sqrt(good_hitter_post_var[1, 1, ])
-) %>%
-  mutate(
-    lower = estimate - 1.96 * se,
-    upper = estimate + 1.96 * se
-  ) %>%
-# filter(upper < 0 & lower < 0 | upper > 0 & lower > 0) %>%
-  left_join(playerid, by = c("batter" = "key_mlbam"))
-
-vif(mod3_good_challenge_hitter)
-
-summary(mod3_good_challenge_hitter)
-# Challenges remaining is very much not significant
-
-# 
+# Looking at the spline:
 newdata <- data.frame(
   delta = 0,
   bat_score_diff = 0,
@@ -344,6 +319,67 @@ testDispersion(mod3_good_challenge_hitter)
 set.seed(1989)
 residuals_sim <- simulateResiduals(fittedModel = mod3_good_challenge_hitter, plot = TRUE)
 plotResiduals(residuals_sim, quantreg = TRUE)
+
+good_hitter_re <- ranef(mod3_good_challenge_hitter, condVar = TRUE)
+
+good_hitter_re_id <- good_hitter_re$batter
+
+good_hitter_post_var <- attr(good_hitter_re_id, "postVar")
+
+good_hitter_re_exploration <- data.frame(
+  batter = as.numeric(rownames(good_hitter_re_id)),
+  estimate = good_hitter_re_id[, "(Intercept)"],
+  se = sqrt(good_hitter_post_var[1, 1, ])
+) %>%
+  mutate(
+    lower = estimate - 1.96 * se,
+    upper = estimate + 1.96 * se
+  ) %>%
+  # filter(upper < 0 & lower < 0 | upper > 0 & lower > 0) %>%
+  left_join(playerid, by = c("batter" = "key_mlbam"))
+
+## SALARY AND SERVICE YEARS MODELS
+mod3_good_challenge_hitter_salary <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+    scale(salary) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+)
+# saveRDS(mod3_good_challenge_hitter_salary, "mod3_good_challenge_hitter_salary.RDS")
+mod3_good_challenge_hitter_salary <- read_rds("mod3_good_challenge_hitter_salary")
+
+summary(mod3_good_challenge_hitter_salary)
+
+mod3_good_challenge_hitter_service <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+    service_years + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+)
+# saveRDS(mod3_good_challenge_hitter_service, "mod3_good_challenge_hitter_service.RDS")
+mod3_good_challenge_hitter_service <- read_rds("mod3_good_challenge_hitter_service")
+
+summary(mod3_good_challenge_hitter_service)
+
+mod3_good_challenge_hitter_full <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+    scale(salary) + service_years + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+)
+
+summary(mod3_good_challenge_hitter_full)
+
+mod3_good_challenge_hitter_int <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+    scale(salary)*scale(service_years) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+)
 
 # mod4_bad_challenge_hitter <- glmer(
 #   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
@@ -523,3 +559,4 @@ for (k in 2:6) {
 }
 
 sapply(mod6_fits, BIC) # The linear term wins out here as well.
+

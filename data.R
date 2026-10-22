@@ -20,7 +20,94 @@ statcastlist_26 <- read_parquet("data/statcastlist_26.parquet")
 
 playerid <- read_csv("data/chadwick_players.csv")
 
+contract <- read_csv("data/contract_salary_2026.csv")
+
 umps <- read_csv("data/home_plate_umps.csv")
+
+# Only selecting what we need from contract:
+contract <- contract |> 
+  select(player_id, player_name, role, position, service_time, salary) |> 
+  filter(role != "Pitcher") # We don't care about pitchers
+
+contract |> filter(is.na(service_time)) |> nrow()
+# We have 62 players for which service time is not available. This needs to be fixed.
+
+sts <- c(8.114, # Orlando Arcia
+         2.087, # Jose Azocar
+         1.137, # Jihwan Bae
+         0.164, # Luken Baker
+         2.050, # Jose Barrero
+         2.063, # Jonah Bride
+         3.014, # Vidal Brujan
+         2.061, # Daz Cameron
+         3.078, # Bryan De La Cruz
+         9.087, # Elias Diaz
+         1.021, # Oliver Dunn
+         3.114, # Stuart Fairchild
+         3.060, # Aramis Garcia
+         4.114, # Eric Haase
+         1.103, # P.J. Higgins
+         2.057, # Sam Huff
+         3.036, # Alex Jackson
+         6.000, # Eloy Jimenez
+         0.124, # Leo Jimenez
+         4.068, # Connor Joe
+         1.025, # Daniel Johnson
+         1.123, # Corey Julks
+         3.035, # Jarred Kelenic
+         1.006, # Buddy Kennedy
+         9.152, # Max Kepler
+         5.090, # Andrew Knizner
+         8.159, # Sandy Leon
+         6.021, # Nicky Lopez
+         1.149, # Vimael Machin
+         5.087, # Nick Madrigal
+         8.086, # Luke Maile
+         6.141, # Trey Mancini
+         1.156, # Luis Matos
+         1.094, # Curtis Mead
+         1.164, # Joey Meneses
+         2.133, # Owen Miller
+         3.031, # Cristian Pache
+         10.092, # Tommy Pham
+         5.104, # Josh Rojas
+         3.135, # Ben Rortvedt
+         1.057, # Ali Sanchez
+         1.089, # Brian Serven
+         2.070, # Zack Short
+         0.088, # Ronny Simon
+         4.015, # Jose Siri
+         2.150, # Nick Solak
+         1.092, # Michael Stefanic
+         4.148, # Garrett Stubbs
+         6.169, # Rowdy Tellez,
+         2.039, # Michael Toglia
+         2.144, # Taylor Trammell
+         2.120, # Chadwick Tromp
+         6.007, # Luis Urias
+         3.033, # Andrew Velazquez
+         1.101, # Nelson Velazquez
+         5.163, # LaMonte Wade Jr
+         1.048, # Donovan Walton
+         1.032, # Alika Williams
+         3.065, # Luke Williams
+         1.097, # Weston Wilson
+         4.058, # Patrick Wisdom
+         1.105 # Brett Wisely
+         )
+
+length(sts)
+
+contract$service_time[is.na(contract$service_time)] <- sts
+
+contract <- contract |> 
+  mutate(st_years = floor(service_time),
+         st_days = round((service_time - st_years) * 1000),
+         service_years_calc = st_years + st_days / 172)
+
+contract <- contract |> 
+  mutate(service_years = round(service_years_calc, 3)) |> 
+  select(-st_years, -st_days, -service_years_calc)
 
 challenge = list(
   catcher = read_csv("data/catcher.csv") %>%
@@ -139,8 +226,6 @@ modeldata2 <- modeldata %>%
            description == "ball" ~ "ball"
          ))
 
-# Dropping 
-
 chase <- read_csv("data/chase.csv") %>%
   mutate(batter = as.character(player_id)) %>%
   select(batter, 3:5)
@@ -157,7 +242,8 @@ modeldata_hitter <- modeldata2 %>%
   filter(challenges_remaining != 0) %>%
   left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
   # Pulling out the ABS disagreements
-  filter(!(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) | !(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0))
+  filter(!(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) | !(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0)) |> 
+  left_join(contract, by = c("batter" = "player_id"))
 
 modeldata_catcher <- modeldata2 %>%
   filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball"), !(inning > 9)) %>%
@@ -171,7 +257,8 @@ modeldata_catcher <- modeldata2 %>%
   filter(challenges_remaining != 0) %>%
   left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
   # Pulling out the ABS disagreements
-  filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1))
+  filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1)) |> 
+  left_join(contract, by = c("fielder_2" = "player_id"))
 
 rm(statcastlist_26)
 rm(umps)

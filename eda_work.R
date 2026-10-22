@@ -285,7 +285,7 @@ modeldata_catcher |>
 
 ## Looking at challenges
 modeldata_hitter |> 
-  filter(miss_dist <= 0) |> 
+  filter(miss_dist <= 0) |>
   group_by(challenges_remaining, inning) |> 
   summarise(n = n(),
             p = sum(challenge_hitter)/n) |> 
