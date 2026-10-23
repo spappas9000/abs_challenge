@@ -40,4 +40,13 @@ Meeting With Greg
     - Mutate a variable that says outs balls strikes (so 1632 is 16 outs, 3 balls, 2 strikes)
     - Visualize a distribution of challenges per hitter and catcher over the 2026 season
     
+10-23-26
+
+  - Download cumulative WAR data and put them in as a model parameter
+    - Cumulative offensive and defensive runs depending on model
+  - Help Oliver with model testing and interpretations
+  - Why is years of service significant when not scaled and not significant when scaled?
+  - Explore a potential effect for if they played in the MiLB in 2025/26
+  - Get familiarized with Coleton's simulation code
+    
     
