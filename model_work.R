@@ -296,6 +296,8 @@ catcher_re_exploration <- data.frame(
 # saveRDS(mod3_good_challenge_hitter, "mod3_good_challenge_hitter.RDS")
 mod3_good_challenge_hitter <- read_rds("mod3_good_challenge_hitter.RDS")
 
+summary(mod3_good_challenge_hitter)
+
 ## 1. Try some interaction effects with challenges_remaining
 # I tried bat_score_diff*challenges_remaining which was significant, and miss_dist*challenges_remaining which was not.
 ## 2. Add random effect for hitting team
@@ -339,72 +341,86 @@ good_hitter_re_exploration <- data.frame(
   left_join(playerid, by = c("batter" = "key_mlbam"))
 
 ## SALARY AND SERVICE YEARS MODELS
-mod3_good_challenge_hitter_salary <- glmer(
-  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
-    scale(salary) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
-)
+# mod3_good_challenge_hitter_salary <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+#     scale(salary) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+# )
 # saveRDS(mod3_good_challenge_hitter_salary, "mod3_good_challenge_hitter_salary.RDS")
-mod3_good_challenge_hitter_salary <- read_rds("mod3_good_challenge_hitter_salary")
+mod3_good_challenge_hitter_salary <- read_rds("mod3_good_challenge_hitter_salary.RDS")
 
 summary(mod3_good_challenge_hitter_salary)
 
-mod3_good_challenge_hitter_service <- glmer(
-  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
-    service_years + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
-)
+sd(modeldata_hitter$salary)
+
+# mod3_good_challenge_hitter_service <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
+#     service_years + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+# )
 # saveRDS(mod3_good_challenge_hitter_service, "mod3_good_challenge_hitter_service.RDS")
-mod3_good_challenge_hitter_service <- read_rds("mod3_good_challenge_hitter_service")
+mod3_good_challenge_hitter_service <- read_rds("mod3_good_challenge_hitter_service.RDS")
 
 summary(mod3_good_challenge_hitter_service)
 
-mod3_good_challenge_hitter_full <- glmer(
-  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
-    scale(salary) + service_years + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+sd(modeldata_hitter$service_years)
+
+## Based on these models, I think service time looks a lot better as a predictor.
+## eda_work 300:330 show a similar story
+
+mod4_bad_challenge_hitter <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
+    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+  data = modeldata_hitter |> filter(miss_dist <= 0),
   family = "binomial",
-  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 )
-
-summary(mod3_good_challenge_hitter_full)
-
-mod3_good_challenge_hitter_int <- glmer(
-  challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff)*challenges_remaining +
-    scale(salary)*scale(service_years) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
-  family = "binomial",
-  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
-)
-
-# mod4_bad_challenge_hitter <- glmer(
-#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
-#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
-#   data = modeldata_hitter |> filter(miss_dist <= 0),
-#   family = "binomial",
-#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
-# )
 # saveRDS(mod4_bad_challenge_hitter, "mod4_bad_challenge_hitter.RDS")
 
 mod4_bad_challenge_hitter <- readRDS("mod4_bad_challenge_hitter.RDS")
 
 # Umpire_hp is a zero-variance term for this model
 vif(mod4_bad_challenge_hitter)
-summary(mod4_bad_challenge_hitter)
+summary(mod4_bad_challenge_hitter2)
 
 # I am less likely to challenge if I have more challenges
 # Can we find the challenges when players have them to burn?
-# 
+
+# mod4_bad_challenge_hitter_salary <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
+#     scale(salary) + challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+#   data = modeldata_hitter |> filter(miss_dist <= 0),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod4_bad_challenge_hitter_salary, "mod4_bad_challenge_hitter_salary.RDS")
+mod4_bad_challenge_hitter_salary <- read_rds("mod4_bad_challenge_hitter_salary.RDS")
+
+summary(mod4_bad_challenge_hitter_salary)
+# Salary is insignificant
+
+# mod4_bad_challenge_hitter_service<- glmer(
+#   challenge_hitter ~ ns(miss_dist, 2) + delta + scale(bat_score_diff) +
+#     service_years + challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+#   data = modeldata_hitter |> filter(miss_dist <= 0),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod4_bad_challenge_hitter_service, "mod4_bad_challenge_hitter_service.RDS")
+mod4_bad_challenge_hitter_service <- read_rds("mod4_bad_challenge_hitter_service.RDS")
+
+summary(mod4_bad_challenge_hitter_service)
+# Service significant
 
 newdata <- data.frame(
   delta = 0,
   bat_score_diff = 0,
   challenges_remaining = 1,
-  miss_dist = seq(0, 0.35, 0.01)
+  miss_dist = seq(-0.8, 0.35, 0.01)
 )
 
 pred <- predict(mod4_bad_challenge_hitter, newdata, re.form = NA, type = "response")
@@ -436,7 +452,7 @@ newdata <- data.frame(
   delta = 0,
   bat_score_diff = 0,
   challenges_remaining = 1,
-  miss_dist = seq(0, 0.35, 0.01)
+  miss_dist = seq(0, 0.75, 0.01)
 )
 
 pred <- predict(mod5_good_challenge_catcher, newdata, re.form = NA, type = "response")
@@ -449,13 +465,41 @@ set.seed(1989)
 residuals_sim3 <- simulateResiduals(fittedModel = mod5_good_challenge_catcher, plot = TRUE)
 plotResiduals(residuals_sim3, quantreg = TRUE)
 
-# mod6_bad_challenge_catcher <- glmer(
+# mod5_good_challenge_catcher_salary <- glmer(
 #   challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
-#     challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
-#   data = modeldata_catcher |> filter(zone > 9),
+#     scale(salary) + challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_catcher |> filter(zone %in% c(1:9)),
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 # )
+# saveRDS(mod5_good_challenge_catcher_salary, "mod5_good_challenge_catcher_salary.RDS")
+
+mod5_good_challenge_catcher_salary <- read_rds("mod5_good_challenge_catcher_salary.RDS")
+
+summary(mod5_good_challenge_catcher_salary)
+# Salary is insignificant
+
+# mod5_good_challenge_catcher_service <- glmer(
+#   challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
+#     service_years + challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_catcher |> filter(zone %in% c(1:9)),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod5_good_challenge_catcher_service, "mod5_good_challenge_catcher_service.RDS")
+
+mod5_good_challenge_catcher_service <- read_rds("mod5_good_challenge_catcher_service.RDS")
+
+summary(mod5_good_challenge_catcher_service)
+# Service time is also insignificant here
+
+mod6_bad_challenge_catcher <- glmer(
+  challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
+    challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+  data = modeldata_catcher |> filter(zone > 9),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
 # saveRDS(mod6_bad_challenge_catcher, "mod6_bad_challenge_catcher.RDS")
 
 mod6_bad_challenge_catcher <- readRDS("mod6_bad_challenge_catcher.RDS")
@@ -469,6 +513,34 @@ testDispersion(mod6_bad_challenge_catcher)
 set.seed(1989)
 residuals_sim4 <- simulateResiduals(fittedModel = mod6_bad_challenge_catcher, plot = TRUE)
 plotResiduals(residuals_sim4, quantreg = TRUE)
+
+# mod6_bad_challenge_catcher_salary <- glmer(
+#   challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
+#     scale(salary) + challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+#   data = modeldata_catcher |> filter(zone > 9),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod6_bad_challenge_catcher_salary, "mod6_bad_challenge_catcher_salary.RDS")
+
+mod6_bad_challenge_catcher_salary <- read_rds("mod6_bad_challenge_catcher_salary.RDS")
+
+summary(mod6_bad_challenge_catcher_salary)
+# Salary is significant
+
+# mod6_bad_challenge_catcher_service <- glmer(
+#   challenge_catcher ~ miss_dist + delta + scale(bat_score_diff) +
+#     service_years + challenges_remaining + (1|batter) + (1|pitcher) + (1|fielder_2),
+#   data = modeldata_catcher |> filter(zone > 9),
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod6_bad_challenge_catcher_service, "mod6_bad_challenge_catcher_service.RDS")
+
+mod6_bad_challenge_catcher_service <- read_rds("mod6_bad_challenge_catcher_service.RDS")
+
+summary(mod6_bad_challenge_catcher_service)
+# Service time is insignificant
 
 # Looking at whether or not we need the splines at the degree they're at
 mod3_data <- modeldata_hitter |> filter(zone > 9)

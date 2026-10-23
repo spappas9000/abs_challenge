@@ -294,3 +294,41 @@ modeldata_hitter |>
 
 # We want to find how many times a team has challenged in each game
 # Challenges happen more later in the game and also when a team only has one challenge_remaining
+
+## Salary and Service Time EDA
+salary_bins <- modeldata_hitter |> 
+  mutate(bin = ntile(salary, 20)) |> 
+  group_by(bin) |> 
+  summarise(x = mean(salary), p = mean(challenge_hitter), n = n())
+
+ggplot(modeldata_hitter, aes(salary, challenge_hitter)) +
+  geom_smooth(method = "glm", method.args = list(family = binomial),
+              formula = y ~ x, color = "dodgerblue") +
+  geom_point(data = salary_bins, aes(x, p), inherit.aes = FALSE, alpha = 0.7) +
+  scale_x_log10(labels = scales::dollar) +
+  labs(x = "log-Salary", y = "P(challenge_hitter)") +
+  theme_minimal()
+
+st_bins <- modeldata_hitter |> 
+  mutate(bin = ntile(service_years, 20)) |> 
+  group_by(bin) |> 
+  summarise(x = mean(service_years), p = mean(challenge_hitter), n = n())
+
+ggplot(modeldata_hitter, aes(service_years, challenge)) +
+  geom_smooth(method = "glm", method.args = list(family = binomial),
+              formula = y ~ x, color = "firebrick4") +
+  geom_point(data = st_bins, aes(x, p), inherit.aes = FALSE, alpha = 0.7) +
+  labs(x = "Service time (years)", y = "P(challenge_hitter)") +
+  theme_minimal()
+
+modeldata_hitter |> 
+  distinct(player_name.y, .keep_all = TRUE) |> 
+  ggplot(aes(x = service_years, y = log(salary))) +
+  geom_point(alpha = 0.5) +
+  geom_vline(xintercept = c(3, 6), linetype = "dashed") +
+  labs(x = "Service time (years)", y = "log-Salary") + 
+  theme_minimal()
+
+modeldata_hitter |> 
+  filter(service_years < 1) |> 
+  view()
