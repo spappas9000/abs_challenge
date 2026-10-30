@@ -1,0 +1,100 @@
+---
+title: "Interpreting Model Parameters"
+subtitle: "Salary as a Covariate"
+author: "Steven Pappas"
+date: "2026-10-30"
+format: 
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: true
+editor: visual
+execute:
+  warning: false
+  message: false
+  echo: true
+  include: true
+---
+
+\newpage
+
+# Good Challenge for a Hitter: $\text{P}(C | S, IZ^\text{c})$
+
+We define event $C$ as a challenge, event $S$ as a called strike, and event $IZ$ as the pitch being in the zone.
+
+```{r}
+library(here)
+
+summary(readRDS(here("models", "mod3_good_challenge_hitter_salary.RDS")))
+```
+
+**Intercept**\*\*\*: The log-odds of a challenge when all predictors are zero is -3.7058 or 2.4724 percent.
+
+**Delta**\*\*\*: The log-odds of a challenge for a one-run increase in run expectancy increase by 5.2136 or 18,275.44 percent.
+
+**Scaled Score Difference**\*\*: The log-odds of a challenge for a one-standard deviation increase in run differential from the batting team's perspective (about 3.4448 runs) decrease by 0.4683 or 37.3934 percent.
+
+**Challenges Remaining**: The log-odds of a challenge for a one-challenge increase in challenges remaining increase by 0.0237 or 2.3932 percent.
+
+**Scaled Salary**\*\*: The log-odds of a challenge for a one-standard deviation increase in salary in USD (about $9.4044 million) increase by 0.1269 or 12.5304 percent.
+
+**Scaled Score Difference, Challenges Remaining Interaction****: For a one-standard deviation increase in challenges remaining (about 0.3364), the log-odds of a challenge for a one-standard deviation increase in run differential from the batting team's perspective (about 3.4448 runs) increases by 0.2187 or 24.4408 percent.
+
+# Bad Challenge for a Hitter: $\text{P}(C | S, IZ)$
+
+We define event $C$ as a challenge, event $S$ as a called strike, and event $IZ$ as the pitch being in the zone.
+
+```{r}
+summary(readRDS(here("models", "mod4_bad_challenge_hitter_salary.RDS")))
+```
+
+**Intercept**\*\*\*: The log-odds of a challenge when all predictors are zero is -13.5171 or about zero percent.
+
+**Delta**\*\*\*: The log-odds of a challenge for a one-run increase in run expectancy increase by 4.9208 or 13,611.23 percent.
+
+**Scaled Score Difference**: The log-odds of a challenge for a one-standard deviation increase in run differential from the batting team's perspective (about 3.4448 runs) decrease by 0.0417 or 4.0804 percent.
+
+**Scaled Salary**: The log-odds of a challenge for a one-standard deviation increase in salary in USD (about \$9.4044 million) increase by 0.0456 or 4.6677 percent.
+
+**Challenges Remaining***: The log-odds of a challenge for a one-challenge increase in challenges remaining decrease by 0.1605 or 14.8308 percent.
+
+# Good Challenge for a Catcher: $\text{P}(C | S^\text{c}, IZ)
+
+We define event $C$ as a challenge, event $S$ as a called strike, and event $IZ$ as the pitch being in the zone.
+
+```{r}
+summary(readRDS(here("models", "mod5_good_challenge_catcher_salary.RDS")))
+```
+
+**Intercept**\*\*\*: The log-odds of a challenge when all predictors are zero is -3.7403 or 2.3747 percent.
+
+**Miss Distance*****: The log-odds of a challenge for a one-foot increase in miss distance inside the strike zone decrease by 9.1938 or 99.9898 percent. What does this mean?
+
+**Delta**\*\*\*: The log-odds of a challenge for a one-run increase in run expectancy increase by 3.2784 or 2,553.382 percent.
+
+**Scaled Score Difference*****: The log-odds of a challenge for a one-standard deviation increase in run differential from the batting team's perspective (about 3.4448 runs) decrease by 0.1051 or 9.9784 percent.
+
+**Scaled Salary**: The log-odds of a challenge for a one-standard deviation increase in salary in USD (about $9.4044 million) increase by 0.05103 or 5.2354 percent.
+
+**Challenges Remaining*****: The log-odds of a challenge for a one-challenge increase in challenges remaining increase by 0.5370 or 71.0918 percent.
+
+# Bad Challenge for a Catcher: $\text{P}(C | S^\text{c}, IZ^\text{c})
+
+We define event $C$ as a challenge, event $S$ as a called strike, and event $IZ$ as the pitch being in the zone.
+
+```{r}
+summary(readRDS(here("models", "mod6_bad_challenge_catcher_salary.RDS")))
+```
+
+**Intercept**\*\*\*: The log-odds of a challenge when all predictors are zero is -3.46 or 3.1429 percent.
+
+**Miss Distance*****: The log-odds of a challenge for a one-foot increase in miss distance outside the strike zone decrease by 14.8665 or 99.9999 percent.
+
+**Delta**\*\*\*: The log-odds of a challenge for a one-run increase in run expectancy increase by 3.0621 or 2,037.239 percent.
+
+**Scaled Score Difference*****: The log-odds of a challenge for a one-standard deviation increase in run differential from the batting team's perspective (about 3.4448 runs) decrease by 0.1042 or 10.98 percent.
+
+**Scaled Salary***: The log-odds of a challenge for a one-standard deviation increase in salary in USD (about $9.4044 million) decrease by 0.1635 or 15.0791 percent.
+
+**Challenges Remaining*****: The log-odds of a challenge for a one-challenge increase in challenges remaining increase by 0.4335 or 54.2647 percent.
+
