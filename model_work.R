@@ -5,6 +5,7 @@ library(pROC)
 library(MLmetrics)
 library(splines)
 library(DHARMa)
+library(tidyverse)
 source("data.R")
 
 ## ---- Hitting Models ----
@@ -294,9 +295,12 @@ catcher_re_exploration <- data.frame(
 #   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
 # )
 # saveRDS(mod3_good_challenge_hitter, "mod3_good_challenge_hitter.RDS")
-mod3_good_challenge_hitter <- read_rds("mod3_good_challenge_hitter.RDS")
+mod3_good_challenge_hitter <- read_rds("./models/mod3_good_challenge_hitter.RDS")
 
 summary(mod3_good_challenge_hitter)
+# Need pretty pictures 
+# Interaction plot
+# Find whether or not a pitch missed left, right, up or down. (miss_dir)
 
 ## 1. Try some interaction effects with challenges_remaining
 # I tried bat_score_diff*challenges_remaining which was significant, and miss_dist*challenges_remaining which was not.
@@ -379,13 +383,14 @@ mod4_bad_challenge_hitter <- glmer(
   family = "binomial",
   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 )
+# Try this with the interaction btwn bat_score_diff*challenges_remaining
 # saveRDS(mod4_bad_challenge_hitter, "mod4_bad_challenge_hitter.RDS")
 
-mod4_bad_challenge_hitter <- readRDS("mod4_bad_challenge_hitter.RDS")
+mod4_bad_challenge_hitter <- readRDS("./models/mod4_bad_challenge_hitter.RDS")
 
 # Umpire_hp is a zero-variance term for this model
 vif(mod4_bad_challenge_hitter)
-summary(mod4_bad_challenge_hitter2)
+summary(mod4_bad_challenge_hitter)
 
 # I am less likely to challenge if I have more challenges
 # Can we find the challenges when players have them to burn?
@@ -443,7 +448,7 @@ plotResiduals(residuals_sim2, quantreg = TRUE)
 # )
 # saveRDS(mod5_good_challenge_catcher, "mod5_good_challenge_catcher.RDS")
 
-mod5_good_challenge_catcher <- readRDS("mod5_good_challenge_catcher.RDS")
+mod5_good_challenge_catcher <- readRDS("./models/mod5_good_challenge_catcher.RDS")
 
 vif(mod5_good_challenge_catcher)
 summary(mod5_good_challenge_catcher)
@@ -502,7 +507,9 @@ mod6_bad_challenge_catcher <- glmer(
 )
 # saveRDS(mod6_bad_challenge_catcher, "mod6_bad_challenge_catcher.RDS")
 
-mod6_bad_challenge_catcher <- readRDS("mod6_bad_challenge_catcher.RDS")
+mod6_bad_challenge_catcher <- readRDS("./models/mod6_bad_challenge_catcher.RDS")
+# Look practically at what these models mean
+# Plot a grid of miss distances and see how the probabilities change
 VarCorr(mod6_bad_challenge_catcher)
 
 vif(mod6_bad_challenge_catcher)
@@ -523,7 +530,7 @@ plotResiduals(residuals_sim4, quantreg = TRUE)
 # )
 # saveRDS(mod6_bad_challenge_catcher_salary, "mod6_bad_challenge_catcher_salary.RDS")
 
-mod6_bad_challenge_catcher_salary <- read_rds("mod6_bad_challenge_catcher_salary.RDS")
+mod6_bad_challenge_catcher_salary <- read_rds("./models/mod6_bad_challenge_catcher_salary.RDS")
 
 summary(mod6_bad_challenge_catcher_salary)
 # Salary is significant
@@ -632,3 +639,4 @@ for (k in 2:6) {
 
 sapply(mod6_fits, BIC) # The linear term wins out here as well.
 
+## Do a model where we take the challenge model and add an indicator for truth for hitters and catchers
