@@ -267,3 +267,11 @@ rm(modeldata)
 rm(runexpectancies)
 rm(runexpectancies2)
 rm(chase)
+
+war <- list(
+  war_26 = read_csv("data/war_26.csv") %>% ## 2026 season
+    select(Name, MLBAMID, Batting_26 = Bat, Fielding_26 = Fld, WAR_26 = WAR),
+  war_career = read_csv("data/war_career.csv") %>% ## Up to 2026 season
+    select(Name, MLBAMID, Batting_career = Bat, Fielding_career = Fld, WAR_career = WAR)
+) %>%
+  reduce(merge, by = c("Name", "MLBAMID"))
