@@ -153,6 +153,8 @@ AIC(mod_sal2, mod_serv2)
 # saveRDS(mod_salmer, "./models/mod7_good_hitter_salary.RDS")
 mod7 <- read_rds("./models/mod7_good_hitter_salary.RDS")
 
+summary(mod7)
+
 # mod_servmer <- glmer(
 #   challenge_hitter ~ ns(miss_dist, 2) + miss_dir + delta + scale(bat_score_diff)*challenges_remaining +
 #     + scale(service_time) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
@@ -162,6 +164,9 @@ mod7 <- read_rds("./models/mod7_good_hitter_salary.RDS")
 # )
 # saveRDS(mod_servmer, "./models/mod8_good_hitter_serv.RDS")
 mod8 <- read_rds("./models/mod8_good_hitter_serv.RDS")
+
+summary(mod8)
+sd(modeldata_hitter$service_time)
 
 AIC(mod7, mod8)
 # Salary AIC 8075.346, Service time AIC 8073.707
@@ -271,13 +276,49 @@ BIC(mod6, mod13, mod14)
 # Total WAR and Offensive WAR (up to 2026) for hitting models
 # Total WAR and Defensive WAR (up to 2026) for catching models
 
-# Good challenge hitter
-mod3_good_challenge_hitter <- glmer(
+# Good challenge hitter - cumulative combined WAR
+# mod15_good_challenge_hitter_war <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 2) + miss_dir + delta + scale(bat_score_diff)*challenges_remaining +
+#     scale(cumwar_career) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_hitter |> filter(miss_dist > 0), 
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod15_good_challenge_hitter_war, "./models/mod15_good_challenge_hitter_war.RDS")
+mod15 <- read_rds("./models/mod15_good_challenge_hitter_war.RDS")
+
+# mod16_good_challenge_hitter_bwar <- glmer(
+#   challenge_hitter ~ ns(miss_dist, 2) + miss_dir + delta + scale(bat_score_diff)*challenges_remaining +
+#     scale(bwar_career) + (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
+#   data = modeldata_hitter |> filter(miss_dist > 0), 
+#   family = "binomial",
+#   control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+# )
+# saveRDS(mod16_good_challenge_hitter_bwar, "./models/mod16_good_challenge_hitter_bwar.RDS")
+mod16 <- read_rds("./models/mod16_good_challenge_hitter_bwar.RDS")
+
+# Good challenge hitter models:
+AIC(mod3, mod7, mod8, mod15, mod16)
+BIC(mod3, mod7, mod8, mod15, mod16)
+
+# Bad challenge hitter - Cum. War
+mod17_bad_challenge_hitter_war <- glmer(
   challenge_hitter ~ ns(miss_dist, 2) + miss_dir + delta + scale(bat_score_diff)*challenges_remaining +
-    (1|batter) + (1|pitcher) + (1|fielder_2) + (1|umpire_hp),
-  data = modeldata_hitter |> filter(miss_dist > 0), # Now that we have miss_dist, we don't need to use zone to filter
+    + scale(cumwar_career) + (1|batter) + (1|pitcher) + (1|fielder_2),
+  data = modeldata_hitter |> filter(miss_dist <= 0),
   family = "binomial",
-  control = glmerControl(optimizer = "bobyqa",  optCtrl = list(maxfun = 2e5))
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 )
-saveRDS(mod3_good_challenge_hitter, "./models/mod3_good_challenge_hitter.RDS")
-mod3 <- read_rds("./models/mod3_good_challenge_hitter.RDS")
+saveRDS(mod17_bad_challenge_hitter_war, "./models/mod17_bad_challenge_hitter_war.RDS")
+mod17 <- read_rds("./models/mod17_bad_challenge_hitter_war.RDS")
+
+# B.War
+mod18_bad_challenge_hitter_bwar <- glmer(
+  challenge_hitter ~ ns(miss_dist, 2) + miss_dir + delta + scale(bat_score_diff)*challenges_remaining +
+    + scale(bwar_career) + (1|batter) + (1|pitcher) + (1|fielder_2),
+  data = modeldata_hitter |> filter(miss_dist <= 0),
+  family = "binomial",
+  control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+)
+saveRDS(mod18_bad_challenge_hitter_bwar, "./models/mod18_bad_challenge_hitter_bwar.RDS")
+mod18 <- read_rds("./models/mod18_bad_challenge_hitter_bwar.RDS")

@@ -330,3 +330,12 @@ for (k in 2:6) {
 }
 
 sapply(mod6_fits, BIC) # The linear term wins out here as well.
+
+modeldata_hitter |> 
+  mutate(service_time_rd = round(service_time, 0)) |> 
+  group_by(service_time_rd) |> 
+  summarise(mn = mean(challenge_hitter)) |> 
+  ggplot(aes(x = service_time_rd, y = mn)) +
+  geom_point() + 
+  geom_line() + 
+  geom_smooth()

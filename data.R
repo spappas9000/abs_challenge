@@ -259,7 +259,13 @@ modeldata_hitter <- modeldata2 %>%
   filter(!(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) | !(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0)) |> 
   left_join(contract, by = c("batter" = "player_id")) |> 
   left_join(war, by = c("batter" = "MLBAMID")) |> 
-  select(-Name)
+  mutate(
+    bwar_career = if_else(is.na(Batting_career), 0, Batting_career),
+    fwar_career = if_else(is.na(Fielding_career), 0, Fielding_career),
+    cumwar_career = if_else(is.na(WAR_career), 0, WAR_career)
+  ) |> 
+  select(-Name, -Batting_26, -Fielding_26, -WAR_26, -Batting_career, -Fielding_career,
+         -WAR_career)
 
 modeldata_catcher <- modeldata2 %>%
   filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball"), !(inning > 9)) %>%
@@ -275,8 +281,14 @@ modeldata_catcher <- modeldata2 %>%
   # Pulling out the ABS disagreements
   filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1)) |> 
   left_join(contract, by = c("fielder_2" = "player_id")) |> 
-  left_join(war, by = c("fielder_2" = "MLBAMID")) |> 
-  select(-Name)
+  left_join(war, by = c("fielder_2" = "MLBAMID")) |>
+  mutate(
+    bwar_career = if_else(is.na(Batting_career), 0, Batting_career),
+    fwar_career = if_else(is.na(Fielding_career), 0, Fielding_career),
+    cumwar_career = if_else(is.na(WAR_career), 0, WAR_career)
+  ) |> 
+  select(-Name, -Batting_26, -Fielding_26, -WAR_26, -Batting_career, -Fielding_career,
+         -WAR_career)
 
 # Environment cleanup
 rm(statcastlist_26)
