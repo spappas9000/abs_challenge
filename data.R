@@ -210,6 +210,12 @@ modeldata2 <- modeldata %>%
          half_zone_ht = (sz_top - sz_bot)/2,
          x_edge_dist = abs(plate_x_adj) - plate_edge,
          z_edge_dist = abs(plate_z_adj) - half_zone_ht,
+         miss_dir = case_when(
+           x_edge_dist > 0 & z_edge_dist > 0 ~ paste(if_else(plate_z_adj > 0, "up", "down"),
+                                                     if_else(plate_x_adj < 0, "in", "out"), sep = "_"),
+           x_edge_dist > z_edge_dist ~ if_else(plate_x_adj < 0, "inside", "outside"),
+           TRUE ~ if_else(plate_z_adj > 0, "up", "down")
+         ),
          min_edge_dist = case_when(
            x_edge_dist > 0 & z_edge_dist > 0 ~ sqrt(x_edge_dist^2 + z_edge_dist^2), # Corner: The shortest distance here will be diagonal
            x_edge_dist > 0 & z_edge_dist <= 0 ~ x_edge_dist, # Inside/outside
@@ -230,6 +236,14 @@ chase <- read_csv("data/chase.csv") %>%
   mutate(batter = as.character(player_id)) %>%
   select(batter, 3:5)
 
+war <- list(
+  war_26 = read_csv("data/war_26.csv") %>% ## 2026 season
+    select(Name, MLBAMID, Batting_26 = Bat, Fielding_26 = Fld, WAR_26 = WAR),
+  war_career = read_csv("data/war_career.csv") %>% ## Up to 2026 season
+    select(Name, MLBAMID, Batting_career = Bat, Fielding_career = Fld, WAR_career = WAR)
+) %>%
+  reduce(merge, by = c("Name", "MLBAMID"))
+
 modeldata_hitter <- modeldata2 %>%
   filter(description == "called_strike" | challenger == "Hitter", !(challenge_catcher == 1 & description == "called_strike"), !(inning > 9)) %>%
   mutate(challenge_hitter_lost = challenge_hitter == 1 & call_change_hitter == 0) %>%
@@ -243,7 +257,9 @@ modeldata_hitter <- modeldata2 %>%
   left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
   # Pulling out the ABS disagreements
   filter(!(miss_dist <= 0 & challenge_hitter == 1 & call_change_hitter == 1) | !(miss_dist >= 0 & challenge_hitter == 1 & call_change_hitter == 0)) |> 
-  left_join(contract, by = c("batter" = "player_id"))
+  left_join(contract, by = c("batter" = "player_id")) |> 
+  left_join(war, by = c("batter" = "MLBAMID")) |> 
+  select(-Name)
 
 modeldata_catcher <- modeldata2 %>%
   filter(description != "called_strike" | challenger == "Catcher", !(challenge_hitter == 1 & description == "ball"), !(inning > 9)) %>%
@@ -258,8 +274,11 @@ modeldata_catcher <- modeldata2 %>%
   left_join(umps %>% rename(umpire_hp = fullName), by = "game_pk") |> 
   # Pulling out the ABS disagreements
   filter(!(miss_dist >= 0 & challenge_catcher == 1 & call_change_catcher == 1)) |> 
-  left_join(contract, by = c("fielder_2" = "player_id"))
+  left_join(contract, by = c("fielder_2" = "player_id")) |> 
+  left_join(war, by = c("fielder_2" = "MLBAMID")) |> 
+  select(-Name)
 
+# Environment cleanup
 rm(statcastlist_26)
 rm(umps)
 rm(challenge)
@@ -267,11 +286,6 @@ rm(modeldata)
 rm(runexpectancies)
 rm(runexpectancies2)
 rm(chase)
-
-war <- list(
-  war_26 = read_csv("data/war_26.csv") %>% ## 2026 season
-    select(Name, MLBAMID, Batting_26 = Bat, Fielding_26 = Fld, WAR_26 = WAR),
-  war_career = read_csv("data/war_career.csv") %>% ## Up to 2026 season
-    select(Name, MLBAMID, Batting_career = Bat, Fielding_career = Fld, WAR_career = WAR)
-) %>%
-  reduce(merge, by = c("Name", "MLBAMID"))
+rm(playerid)
+rm(contract)
+rm(war)
