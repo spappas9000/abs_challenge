@@ -329,8 +329,8 @@ mod28_bad_challenge_catcher_serv <- read_rds("./models/mod28_bad_challenge_catch
 #   family = "binomial",
 #   control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
 # )
-# saveRDS(mod29_bad_challenge_catcher_war, "./models/mod2_bad_challenge_catcher_war.RDS")
-mod29_bad_challenge_catcher_war <- read_rds("./models/mod2_bad_challenge_catcher_war.RDS")
+# saveRDS(mod29_bad_challenge_catcher_war, "./models/mod29_bad_challenge_catcher_war.RDS")
+mod29_bad_challenge_catcher_war <- read_rds("./models/mod29_bad_challenge_catcher_war.RDS")
 
 # mod30_bad_challenge_catcher_fwar <- glmer(
 #   challenge_catcher ~ miss_dist + miss_dir + delta + scale(bat_score_diff)*challenges_remaining +
