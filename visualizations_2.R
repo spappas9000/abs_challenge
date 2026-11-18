@@ -16,13 +16,13 @@ tidy_glmer <- function(m) {
 
 # Table of every model file
 cells <- tibble(
-  cell  = c("Hitter / should", "Hitter / should not", "Catcher / should", "Catcher / should not"),
+  cell  = c("Hitter, Should", "Hitter, Should Not", "Catcher, Should", "Catcher, Should Not"),
   stem  = c("good_challenge_hitter", "bad_challenge_hitter", "good_challenge_catcher", "bad_challenge_catcher"),
   start = c(11, 16, 21, 26),
   wtag  = c("bwar", "bwar", "fwar", "fwar")
 )
 models <- cells |>
-  crossing(tibble(i = 0:4, measure = c("Base", "Salary", "Service time", "Career WAR", "Bat/Field WAR"))) |>
+  crossing(tibble(i = 0:4, measure = c("Base", "Salary", "Service Time", "Career WAR", "Bat/Field WAR"))) |>
   mutate(suffix = c("", "_sal", "_serv", "_war", "")[i + 1],
          suffix = if_else(i == 4, paste0("_", wtag), suffix),
          file   = paste0("mod", start + i, "_", stem, suffix)) |>
@@ -43,11 +43,11 @@ mod11 <- readRDS("models/mod11_good_challenge_hitter.RDS")
 mod16 <- readRDS("models/mod16_bad_challenge_hitter.RDS")
 mod21 <- readRDS("models/mod21_good_challenge_catcher.RDS")
 mod26 <- readRDS("models/mod26_bad_challenge_catcher.RDS")
-base  <- list(`Hitter / should` = mod11, `Hitter / should not` = mod16,
-              `Catcher / should` = mod21, `Catcher / should not` = mod26)
+base  <- list(`Hitter, Should` = mod11, `Hitter, Should Not` = mod16,
+              `Catcher, Should` = mod21, `Catcher, Should Not` = mod26)
 
 
-coefs |> filter(cell == "Hitter / should", measure == "Service time", str_detect(term, "service"))
+coefs |> filter(cell == "Hitter, Should", measure == "Service Time", str_detect(term, "service"))
 
 
 # SLIDE 10: Model Frameworks (sample-size table)
@@ -76,13 +76,14 @@ p_gs <- ggplot(gs, aes(estimate, fct_rev(cell), color = conf.low > 1 | conf.high
   scale_color_manual(values = c(`TRUE` = "#4D1434", `FALSE` = "grey60"), guide = "none") +
   labs(x = "Odds ratio (95% CI)", y = NULL) +
   theme_minimal(base_size = 15)
+p_gs
 ggsave("plots/game_state_effects.png", p_gs, width = 11, height = 4.5, dpi = 300)
 
 # Model Results (seniority)
 sen <- coefs |>
   filter(str_detect(term, "salary|service|war_career")) |>
   mutate(across(c(estimate, conf.low, conf.high), exp),
-         measure = factor(measure, levels = c("Salary", "Service time", "Career WAR", "Bat/Field WAR")))
+         measure = factor(measure, levels = c("Salary", "Service Time", "Career WAR", "Bat/Field WAR")))
 
 p_sen <- ggplot(sen, aes(estimate, fct_rev(measure), color = conf.low > 1 | conf.high < 1)) +
   geom_vline(xintercept = 1, linetype = "dashed") +
@@ -92,6 +93,7 @@ p_sen <- ggplot(sen, aes(estimate, fct_rev(measure), color = conf.low > 1 | conf
   scale_color_manual(values = c(`TRUE` = "#4D1434", `FALSE` = "grey60"), guide = "none") +
   labs(x = "Odds ratio per 1 SD increase (95% CI)", y = NULL) +
   theme_minimal(base_size = 14)
+p_sen
 ggsave("plots/seniority_effects.png", p_sen, width = 14, height = 4.5, dpi = 300)
 
 # : Model Results (model comparison)
