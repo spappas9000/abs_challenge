@@ -48,5 +48,83 @@ Meeting With Greg
   - Why is years of service significant when not scaled and not significant when scaled?
   - Explore a potential effect for if they played in the MiLB in 2025/26
   - Get familiarized with Coleton's simulation code
+  
+11-13-26 (What we need to get done)
+
+- Draft some slides
+
+Coleton
+
+- Expanding simulations to two strikes
+
+Oliver
+
+- EDA to determine if adding polynomial terms to salary and service time helps
+
+August
+
+- Cumulative WAR to models
+- Work on model interpretations
+
+Steven
+
+- Download career WAR up to 2025 data
+  - Get offensive and defensive breakdowns
+- Use modelsummary to create tables for estimates
+- See if I can translate Coleton's simulation to an app
+- Work on model interpretations
+
+11-16-26
+
+- Coleton
+  - Finished expected value of the maximum value of each run expectancy by game state
+  - Run expectancy plot jumps at two strikes because time t is included
+    - Will time t+1 be faster?
+  - For two challenges remaining, we want the expected value of the second largest run expectancy
+  - p_ind * E[X] = p_lg * E[X^(n)]
+    - p_ind is a vector of length 11 from [0 to 1]
+    - p_lg, E[X], E[x^(n)] are all constants, where p_lg is league average probability of success, E[X] is expected value of that challenge,
+      and E[X^(n)]
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     
