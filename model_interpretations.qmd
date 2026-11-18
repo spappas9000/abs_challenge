@@ -1,0 +1,146 @@
+---
+title: "model_interpretations"
+format: html
+---
+
+## Model Interpretations
+
+Steve's original models updated with our new covariates will be added up here eventually
+
+In our notation, $\text{Call} = 1$ is a called strike, $Call = 0$ is a called ball, $\text{Truth} = 1$ is a true strike and $\text{Truth} = 0$ is a true ball
+
+## Good Challenge - Hitter
+
+$P(\text{Challenge} = 1 | \text{Call} =  1, \text{Truth} = 0)$
+
+### Base Model
+
+```{r}
+summary(mod11_good_challenge_hitter)
+```
+
+### Salary Model
+
+```{r}
+summary(mod12_good_challenge_hitter_sal)
+```
+
+### Service Time Model
+
+```{r}
+summary(mod13_good_challenge_hitter_serv)
+```
+
+### Cumulative WAR Model
+
+```{r}
+summary(mod14_good_challenge_hitter_war)
+```
+
+### Cumulative Offensive WAR Model
+
+```{r}
+summary(mod15_good_challenge_hitter_bwar)
+```
+
+## Bad Challenge - Hitter
+
+$P(\text{Challenge} = 1 | \text{Call} =  1, \text{Truth} = 1)$
+
+### Base Model
+
+```{r}
+summary(mod16_bad_challenge_hitter)
+```
+
+### Salary Model
+
+```{r}
+summary(mod17_bad_challenge_hitter_sal)
+```
+
+### Service Time Model
+
+```{r}
+summary(mod18_bad_challenge_hitter_serv)
+```
+
+### Cumulative WAR Model
+
+```{r}
+summary(mod19_bad_challenge_hitter_war)
+```
+
+### Cumulative Offensive WAR Model
+
+```{r}
+summary(mod20_bad_challenge_hitter_bwar)
+```
+
+## Good Challenge - Catcher
+
+$P(\text{Challenge} = 1 | \text{Call} =  0, \text{Truth} = 1)$
+
+### Base Model
+
+```{r}
+summary(mod21_good_challenge_catcher)
+```
+
+### Salary Model
+
+```{r}
+summary(mod22_good_challenge_catcher_sal)
+```
+
+### Service Time Model
+
+```{r}
+summary(mod23_good_challenge_catcher_serv)
+```
+
+### Cumulative WAR Model
+
+```{r}
+summary(mod24_good_challenge_catcher_war)
+```
+
+### Cumulative Defensive WAR Model
+
+```{r}
+summary(mod25_good_challenge_catcher_fwar)
+```
+
+## Bad Challenge - Catcher
+
+$P(\text{Challenge} = 1 | \text{Call} =  0, \text{Truth} = 0)$
+
+### Base Model
+
+```{r}
+summary(mod26_bad_challenge_catcher)
+```
+
+### Salary Model
+
+```{r}
+summary(mod27_bad_challenge_catcher_sal)
+```
+
+### Service Time Model
+
+```{r}
+summary(mod28_bad_challenge_catcher_serv)
+```
+
+### Cumulative WAR Model
+
+```{r}
+summary(mod29_bad_challenge_catcher_war)
+```
+
+### Cumulative Defensive WAR Model
+
+```{r}
+summary(mod30_bad_challenge_catcher_fwar)
+```
